@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,33 +21,32 @@ import {
   AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
+import { useAppSelector } from "@/lib/hooks/hooks"
+import { selectIsAuthenticated, selectUserRole } from "@/lib/redux/slices/auth/auth.slice"
 
 export default function DashboardPage() {
-  const [userRole, setUserRole] = useState("")
+  
   const router = useRouter()
 
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const userRole = useAppSelector(selectUserRole);
+  console.log("Role", userRole)
+
   useEffect(() => {
-    // In a real app, you would get the user role from your auth context/session
-    // For demo purposes, we'll redirect to worker dashboard
-    // You can change this to test different dashboards
-
-    const role = "worker" // This would come from your auth system
-    setUserRole(role)
-
-    switch (role) {
-      case "admin":
-        router.push("/dashboard/admin")
-        break
-      case "recruiter":
-        router.push("/dashboard/recruiter")
-        break
-      case "worker":
-      default:
-        router.push("/dashboard/worker")
-        break
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+      return;
     }
-  }, [router])
 
+    // If user tries to access /dashboard directly, redirect to their role-specific dashboard
+    if (userRole && !window.location.pathname.startsWith(`/dashboard/${userRole.toLowerCase()}`)) {
+      router.push(`/dashboard/${userRole.toLowerCase()}`);
+    }
+  }, [isAuthenticated, userRole, router]);
+
+  if (!isAuthenticated || !userRole) {
+    return null; // or a loading spinner
+  }
   // Mock data
   const stats = {
     worker: {
@@ -172,7 +171,7 @@ export default function DashboardPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, John! 👋</h1>
           <p className="text-gray-600">
-            {userRole === "worker"
+            {userRole === "WORKER"
               ? "Here's what's happening with your job search"
               : "Here's an overview of your recruitment activities"}
           </p>
@@ -180,7 +179,7 @@ export default function DashboardPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {userRole === "worker" ? (
+          {userRole === "WORKER" ? (
             <>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -276,9 +275,9 @@ export default function DashboardPage() {
             <Tabs defaultValue="applications" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="applications">
-                  {userRole === "worker" ? "My Applications" : "Recent Applications"}
+                  {userRole === "WORKER" ? "My Applications" : "Recent Applications"}
                 </TabsTrigger>
-                <TabsTrigger value="jobs">{userRole === "worker" ? "Recommended Jobs" : "My Job Posts"}</TabsTrigger>
+                <TabsTrigger value="jobs">{userRole === "WORKER" ? "Recommended Jobs" : "My Job Posts"}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="applications" className="space-y-4">
@@ -322,9 +321,9 @@ export default function DashboardPage() {
               <TabsContent value="jobs" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>{userRole === "worker" ? "Recommended for You" : "Your Job Posts"}</CardTitle>
+                    <CardTitle>{userRole === "WORKER" ? "Recommended for You" : "Your Job Posts"}</CardTitle>
                     <CardDescription>
-                      {userRole === "worker"
+                      {userRole === "WORKER"
                         ? "Jobs that match your skills and preferences"
                         : "Manage your active job listings"}
                     </CardDescription>
@@ -343,7 +342,7 @@ export default function DashboardPage() {
                               $25-30/hour
                             </div>
                           </div>
-                          <Button size="sm">{userRole === "worker" ? "Apply" : "View"}</Button>
+                          <Button size="sm">{userRole === "WORKER" ? "Apply" : "View"}</Button>
                         </div>
                       </div>
                       <div className="p-4 border rounded-lg">
@@ -358,7 +357,7 @@ export default function DashboardPage() {
                               $22/hour
                             </div>
                           </div>
-                          <Button size="sm">{userRole === "worker" ? "Apply" : "View"}</Button>
+                          <Button size="sm">{userRole === "WORKER" ? "Apply" : "View"}</Button>
                         </div>
                       </div>
                     </div>
@@ -406,7 +405,7 @@ export default function DashboardPage() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {userRole === "worker" ? (
+                {userRole === "WORKER" ? (
                   <>
                     <Button className="w-full" variant="outline">
                       <Briefcase className="h-4 w-4 mr-2" />

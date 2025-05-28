@@ -31,6 +31,7 @@ import {
   Verified,
 } from "lucide-react"
 import Link from "next/link"
+import { formatDate } from "@/utils/formartDate"
 
 export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -298,7 +299,7 @@ export default function AdminDashboard() {
                         <h4 className="font-medium text-gray-900">{alert.title}</h4>
                         <p className="text-sm text-gray-600">{alert.message}</p>
                       </div>
-                      <span className="text-xs text-gray-500">{new Date(alert.timestamp).toLocaleTimeString()}</span>
+                      <span className="text-xs text-gray-500">{formatDate(alert.timestamp)}</span>
                     </div>
                   </div>
                 ))}

@@ -1,60 +1,88 @@
-"use client"
+"use client";
 
-import type React from "react"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { useFormik } from "formik";
+import { loginValidation } from "@/utils/validation";
+import { FormError } from "@/utils/FormError";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, ArrowLeft } from "lucide-react"
-import Link from "next/link"
+// Redux
+import {
+  loginUser,
+  selectAuthError,
+  selectUserRole,
+  selectIsAuthenticated,
+} from "@/lib/redux/slices/auth/auth.slice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks/hooks";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const error = useAppSelector(selectAuthError);
+  const userRole = useAppSelector(selectUserRole);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Mock authentication logic
-      if (formData.email && formData.password) {
-        // Redirect based on user role (mock)
-        window.location.href = "/dashboard"
-      } else {
-        setError("Please fill in all fields")
+  // Redirect based on role when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated && userRole) {
+      switch (userRole) {
+        case 'ADMIN':
+          router.push('/dashboard/admin');
+          break;
+        case 'RECRUITER':
+          router.push('/dashboard/recruiter');
+          break;
+        case 'WORKER':
+          router.push('/dashboard/worker');
+          break;
+        default:
+          router.push('/');
       }
-    } catch (err) {
-      setError("Invalid credentials. Please try again.")
-    } finally {
-      setIsLoading(false)
     }
-  }
+  }, [isAuthenticated, userRole, router]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
-  }
+  const formik = useFormik({
+    initialValues: {
+      email: "",
+      password: "",
+    },
+    validationSchema: loginValidation,
+    onSubmit: async (values) => {
+      setIsLoading(true);
+      try {
+        await dispatch(loginUser(values));
+      } catch (error) {
+        console.error("Login error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="mb-6">
-          <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-700">
+          <Link
+            href="/"
+            className="inline-flex items-center text-blue-600 hover:text-blue-700"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
@@ -63,10 +91,12 @@ export default function LoginPage() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-            <CardDescription>Sign in to your JobConnect account</CardDescription>
+            <CardDescription>
+              Sign in to your JobConnect account
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={formik.handleSubmit} className="space-y-4">
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
@@ -80,10 +110,12 @@ export default function LoginPage() {
                   name="email"
                   type="email"
                   placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
+                  value={formik.values.email}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  disabled={isLoading}
                 />
+                <FormError formik={formik} name="email"  />
               </div>
 
               <div className="space-y-2">
@@ -94,37 +126,62 @@ export default function LoginPage() {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
+                    value={formik.values.password}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    disabled={isLoading}
                   />
+                  <FormError formik={formik} name="password" />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
 
               <div className="flex items-center justify-between">
-                <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                >
                   Forgot password?
                 </Link>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In"}
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                  </span>
+                ) : "Sign In"}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{" "}
-                <Link href="/auth/register" className="text-blue-600 hover:text-blue-700 font-medium">
+                <Link
+                  href="/auth/register"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
                   Sign up
                 </Link>
               </p>
@@ -133,5 +190,5 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

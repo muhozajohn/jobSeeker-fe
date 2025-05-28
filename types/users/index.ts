@@ -57,3 +57,9 @@ export interface LoginDto {
     password: string;
 
 }
+
+export interface UserProfileResponse {
+    id: number;
+    email: string;
+    role: Role
+}
