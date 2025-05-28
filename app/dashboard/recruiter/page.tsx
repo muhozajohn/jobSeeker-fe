@@ -1,0 +1,609 @@
+"use client"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Progress } from "@/components/ui/progress"
+import {
+  Bell,
+  Briefcase,
+  Calendar,
+  DollarSign,
+  MapPin,
+  Users,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Plus,
+  Eye,
+  MessageSquare,
+  TrendingUp,
+  Building,
+  UserCheck,
+  FileText,
+} from "lucide-react"
+import Link from "next/link"
+
+export default function RecruiterDashboard() {
+  // Mock data based on Prisma schema
+  const recruiterData = {
+    id: 1,
+    user: {
+      firstName: "Sarah",
+      lastName: "Johnson",
+      email: "sarah.johnson@company.com",
+      phone: "+1 (555) 987-6543",
+      avatar: null,
+    },
+    companyName: "Elite Services Inc",
+    type: "COMPANY",
+    description: "Leading provider of professional services",
+    location: "New York, NY",
+    website: "https://eliteservices.com",
+    verified: true,
+  }
+
+  const stats = {
+    activeJobs: 8,
+    totalApplications: 156,
+    pendingApplications: 23,
+    acceptedApplications: 45,
+    activeAssignments: 12,
+    completedAssignments: 89,
+    totalSpent: 45000,
+    averageRating: 4.6,
+  }
+
+  const activeJobs = [
+    {
+      id: 1,
+      title: "Elementary School Teacher",
+      category: { name: "Teacher" },
+      salary: 45000,
+      salaryType: "YEARLY",
+      location: "Manhattan, NY",
+      isActive: true,
+      allowMultiple: false,
+      workingHours: "8:00 AM - 3:00 PM",
+      applications: [
+        { id: 1, status: "PENDING" },
+        { id: 2, status: "PENDING" },
+        { id: 3, status: "ACCEPTED" },
+      ],
+      createdAt: "2024-01-15T10:00:00Z",
+    },
+    {
+      id: 2,
+      title: "House Cleaner - Flexible Schedule",
+      category: { name: "Cleaner" },
+      salary: 20,
+      salaryType: "HOURLY",
+      location: "Brooklyn, NY",
+      isActive: true,
+      allowMultiple: true,
+      workingHours: "Flexible",
+      applications: [
+        { id: 4, status: "PENDING" },
+        { id: 5, status: "ACCEPTED" },
+        { id: 6, status: "ACCEPTED" },
+      ],
+      createdAt: "2024-01-14T14:30:00Z",
+    },
+    {
+      id: 3,
+      title: "Security Guard - Night Shift",
+      category: { name: "Security" },
+      salary: 25,
+      salaryType: "HOURLY",
+      location: "Queens, NY",
+      isActive: true,
+      allowMultiple: false,
+      workingHours: "10:00 PM - 6:00 AM",
+      applications: [
+        { id: 7, status: "PENDING" },
+        { id: 8, status: "PENDING" },
+        { id: 9, status: "REJECTED" },
+      ],
+      createdAt: "2024-01-12T09:15:00Z",
+    },
+  ]
+
+  const recentApplications = [
+    {
+      id: 1,
+      job: { title: "Elementary School Teacher", id: 1 },
+      worker: {
+        user: { firstName: "John", lastName: "Doe", avatar: null },
+        experience: "5+ years in education",
+        skills: "Teaching, Classroom Management",
+      },
+      status: "PENDING",
+      appliedAt: "2024-01-18T10:00:00Z",
+      message: "I'm excited about this teaching opportunity...",
+    },
+    {
+      id: 2,
+      job: { title: "House Cleaner - Flexible Schedule", id: 2 },
+      worker: {
+        user: { firstName: "Maria", lastName: "Garcia", avatar: null },
+        experience: "3 years residential cleaning",
+        skills: "Deep cleaning, Organization",
+      },
+      status: "PENDING",
+      appliedAt: "2024-01-18T14:30:00Z",
+      message: "Available for flexible scheduling...",
+    },
+    {
+      id: 3,
+      job: { title: "Security Guard - Night Shift", id: 3 },
+      worker: {
+        user: { firstName: "David", lastName: "Wilson", avatar: null },
+        experience: "7 years security experience",
+        skills: "Surveillance, Emergency Response",
+      },
+      status: "ACCEPTED",
+      appliedAt: "2024-01-17T16:45:00Z",
+      message: "Experienced in night security operations...",
+    },
+  ]
+
+  const activeAssignments = [
+    {
+      id: 1,
+      job: { title: "Morning House Cleaning", category: { name: "Cleaner" } },
+      worker: { user: { firstName: "Maria", lastName: "Garcia" } },
+      workDate: "2024-01-20T00:00:00Z",
+      startTime: "2024-01-20T08:00:00Z",
+      endTime: "2024-01-20T12:00:00Z",
+      status: "ACTIVE",
+      notes: "Regular weekly cleaning service",
+    },
+    {
+      id: 2,
+      job: { title: "After School Teaching", category: { name: "Teacher" } },
+      worker: { user: { firstName: "John", lastName: "Doe" } },
+      workDate: "2024-01-22T00:00:00Z",
+      startTime: "2024-01-22T15:00:00Z",
+      endTime: "2024-01-22T17:00:00Z",
+      status: "ACTIVE",
+      notes: "Math tutoring session",
+    },
+  ]
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800"
+      case "ACCEPTED":
+        return "bg-green-100 text-green-800"
+      case "REJECTED":
+        return "bg-red-100 text-red-800"
+      case "CANCELLED":
+        return "bg-gray-100 text-gray-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return <Clock className="h-4 w-4" />
+      case "ACCEPTED":
+        return <CheckCircle className="h-4 w-4" />
+      case "REJECTED":
+        return <AlertCircle className="h-4 w-4" />
+      default:
+        return <Clock className="h-4 w-4" />
+    }
+  }
+
+  const formatSalary = (amount: number, type: string) => {
+    const formatMap = {
+      HOURLY: `$${amount}/hr`,
+      DAILY: `$${amount}/day`,
+      WEEKLY: `$${amount}/week`,
+      MONTHLY: `$${amount.toLocaleString()}/month`,
+      YEARLY: `$${amount.toLocaleString()}/year`,
+    }
+    return formatMap[type as keyof typeof formatMap] || `$${amount}`
+  }
+
+  const getRecruiterTypeIcon = (type: string) => {
+    switch (type) {
+      case "COMPANY":
+        return <Building className="h-4 w-4" />
+      case "GROUP":
+        return <Users className="h-4 w-4" />
+      case "INDIVIDUAL":
+        return <UserCheck className="h-4 w-4" />
+      default:
+        return <Building className="h-4 w-4" />
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+               <Link
+              href="/"
+              className="flex items-center gap-2 text-xl font-bold text-gray-900 hover:text-orange-400 transition-colors"
+            >
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-400 rounded-lg flex items-center justify-center">
+                <Briefcase size={18} className="text-white" />
+              </div>
+              JobConnect
+            </Link>
+              <Badge variant="secondary" className="ml-3">
+                <div className="flex items-center space-x-1">
+                  {getRecruiterTypeIcon(recruiterData.type)}
+                  <span>Recruiter</span>
+                </div>
+              </Badge>
+              {recruiterData.verified && (
+                <Badge variant="default" className="ml-2 bg-green-600">
+                  Verified
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm">
+                <Bell className="h-4 w-4" />
+              </Button>
+              <Avatar>
+                <AvatarImage src={recruiterData.user.avatar || "/placeholder.svg?height=32&width=32"} />
+                <AvatarFallback>
+                  {recruiterData.user.firstName[0]}
+                  {recruiterData.user.lastName[0]}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, {recruiterData.user.firstName}! 👋</h1>
+          <p className="text-gray-600">
+            Manage your job postings and track applications for {recruiterData.companyName}
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{stats.activeJobs}</div>
+              <p className="text-xs text-muted-foreground">Currently hiring</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Applications</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">{stats.pendingApplications}</div>
+              <p className="text-xs text-muted-foreground">Need review</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Workers</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.activeAssignments}</div>
+              <p className="text-xs text-muted-foreground">Currently working</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Monthly Spend</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">${stats.totalSpent.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">This month</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column */}
+          <div className="lg:col-span-2">
+            <Tabs defaultValue="jobs" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="jobs">Job Posts</TabsTrigger>
+                <TabsTrigger value="applications">Applications</TabsTrigger>
+                <TabsTrigger value="assignments">Work Assignments</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="jobs" className="space-y-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Active Job Posts</CardTitle>
+                      <CardDescription>Manage your current job listings</CardDescription>
+                    </div>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Post New Job
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {activeJobs.map((job) => (
+                        <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-semibold text-gray-900">{job.title}</h3>
+                              <Badge variant="secondary">{job.category.name}</Badge>
+                              {job.allowMultiple && <Badge variant="outline">Multiple Workers</Badge>}
+                            </div>
+                            <div className="flex items-center text-sm text-gray-500 space-x-4">
+                              <div className="flex items-center">
+                                <MapPin className="h-4 w-4 mr-1" />
+                                {job.location}
+                              </div>
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 mr-1" />
+                                {formatSalary(job.salary, job.salaryType)}
+                              </div>
+                              <div className="flex items-center">
+                                <Clock className="h-4 w-4 mr-1" />
+                                {job.workingHours}
+                              </div>
+                            </div>
+                            <div className="flex items-center mt-2 text-sm">
+                              <span className="text-gray-600">
+                                {job.applications.length} applications •{" "}
+                                {job.applications.filter((app) => app.status === "PENDING").length} pending
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button size="sm" variant="outline">
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            <Button size="sm">Edit</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="applications" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Applications</CardTitle>
+                    <CardDescription>Review and manage worker applications</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {recentApplications.map((application) => (
+                        <div key={application.id} className="flex items-start justify-between p-4 border rounded-lg">
+                          <div className="flex items-start space-x-4">
+                            <Avatar>
+                              <AvatarImage
+                                src={application.worker.user.avatar || "/placeholder.svg?height=40&width=40"}
+                              />
+                              <AvatarFallback>
+                                {application.worker.user.firstName[0]}
+                                {application.worker.user.lastName[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900">
+                                {application.worker.user.firstName} {application.worker.user.lastName}
+                              </h3>
+                              <p className="text-sm text-gray-600">{application.job.title}</p>
+                              <p className="text-sm text-gray-500 mt-1">{application.worker.experience}</p>
+                              <p className="text-sm text-gray-500">{application.worker.skills}</p>
+                              {application.message && (
+                                <p className="text-sm text-gray-700 mt-2 italic">"{application.message}"</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end space-y-2">
+                            <Badge className={getStatusColor(application.status)}>
+                              <div className="flex items-center space-x-1">
+                                {getStatusIcon(application.status)}
+                                <span>{application.status.toLowerCase()}</span>
+                              </div>
+                            </Badge>
+                            <span className="text-xs text-gray-500">
+                              {new Date(application.appliedAt).toLocaleDateString()}
+                            </span>
+                            {application.status === "PENDING" && (
+                              <div className="flex space-x-2">
+                                <Button size="sm" variant="outline">
+                                  Reject
+                                </Button>
+                                <Button size="sm">Accept</Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="assignments" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Active Work Assignments</CardTitle>
+                    <CardDescription>Monitor ongoing work assignments</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {activeAssignments.map((assignment) => (
+                        <div key={assignment.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900">{assignment.job.title}</h3>
+                            <p className="text-sm text-gray-600">
+                              Worker: {assignment.worker.user.firstName} {assignment.worker.user.lastName}
+                            </p>
+                            <div className="flex items-center mt-2 text-sm text-gray-500">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              {new Date(assignment.workDate).toLocaleDateString()}
+                              <span className="mx-2">•</span>
+                              {new Date(assignment.startTime).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}{" "}
+                              -{" "}
+                              {new Date(assignment.endTime).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </div>
+                            {assignment.notes && <p className="text-sm text-gray-600 mt-1">{assignment.notes}</p>}
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button size="sm" variant="outline">
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              Message
+                            </Button>
+                            <Button size="sm">View Details</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button className="w-full" variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Post New Job
+                </Button>
+                <Button className="w-full" variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  Browse Workers
+                </Button>
+                <Button className="w-full" variant="outline">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  View Analytics
+                </Button>
+                <Button className="w-full" variant="outline">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Reports
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Company Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Company Profile</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <div className="font-medium text-gray-900">{recruiterData.companyName}</div>
+                  <div className="text-sm text-gray-600">{recruiterData.type} Recruiter</div>
+                </div>
+                <div className="text-sm text-gray-600">{recruiterData.description}</div>
+                <div className="flex items-center text-sm text-gray-500">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  {recruiterData.location}
+                </div>
+                {recruiterData.website && (
+                  <div className="text-sm">
+                    <a href={recruiterData.website} className="text-blue-600 hover:underline">
+                      {recruiterData.website}
+                    </a>
+                  </div>
+                )}
+                <Button className="w-full" variant="outline" size="sm">
+                  Edit Profile
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Performance Metrics */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance</CardTitle>
+                <CardDescription>Your hiring statistics</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Response Rate</span>
+                  <span className="text-sm text-gray-600">85%</span>
+                </div>
+                <Progress value={85} />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Hire Success Rate</span>
+                  <span className="text-sm text-gray-600">72%</span>
+                </div>
+                <Progress value={72} />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Worker Satisfaction</span>
+                  <span className="text-sm text-gray-600">4.6/5</span>
+                </div>
+                <Progress value={92} />
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-sm">
+                  <div className="font-medium">New application received</div>
+                  <div className="text-gray-600">Elementary School Teacher position</div>
+                  <div className="text-xs text-gray-500">2 hours ago</div>
+                </div>
+                <div className="text-sm">
+                  <div className="font-medium">Worker assignment completed</div>
+                  <div className="text-gray-600">House cleaning by Maria Garcia</div>
+                  <div className="text-xs text-gray-500">1 day ago</div>
+                </div>
+                <div className="text-sm">
+                  <div className="font-medium">Job post published</div>
+                  <div className="text-gray-600">Security Guard - Night Shift</div>
+                  <div className="text-xs text-gray-500">3 days ago</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
