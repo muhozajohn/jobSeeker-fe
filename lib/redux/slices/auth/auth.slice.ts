@@ -2,14 +2,14 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import authService from "@/lib/services/auth.service";
 import { formatError } from "@/utils/errors";
-import { LoginDto } from "@/types/users";
+import { LoginDto, UserProfileResponse } from "@/types/users";
 
 // ========== Type Definitions ==========
 interface User {
   id: string;
   email: string;
   name?: string;
-  role?: string;
+  role?: 'ADMIN' | 'RECRUITER' | 'WORKER';
 }
 
 interface DecodedToken {
@@ -27,6 +27,7 @@ interface AuthTokens {
 
 interface AuthState {
   user: User | null;
+  me: UserProfileResponse | null;
   tokens: AuthTokens;
   loading: boolean;
   error: string | null;
@@ -54,12 +55,12 @@ const decodeJWT = (token: string): DecodedToken | null => {
   }
 };
 
-const getUserFromToken = (token: string): User | null => {
+export const getUserFromToken = (token: string): User | null => {
   const decoded = decodeJWT(token);
   return decoded ? {
     id: decoded.id.toString(),
     email: decoded.email,
-    role: decoded.role,
+    role: decoded.role as 'ADMIN' | 'RECRUITER' | 'WORKER',
   } : null;
 };
 
@@ -72,7 +73,7 @@ const isTokenExpired = (token: string): boolean => {
 // ========== Storage Functions ==========
 const getStoredAuthData = (): { token: string | null, user: User | null } => {
   if (typeof window === "undefined") return { token: null, user: null };
-  
+
   const token = localStorage.getItem("token");
   if (!token || isTokenExpired(token)) {
     clearStoredAuth();
@@ -85,6 +86,7 @@ const getStoredAuthData = (): { token: string | null, user: User | null } => {
 
 const clearStoredAuth = (): void => {
   if (typeof window === "undefined") return;
+  localStorage.clear();
   localStorage.removeItem("token");
   localStorage.removeItem("user");
 };
@@ -105,6 +107,7 @@ const storedAuth = getStoredAuthData();
 
 const initialState: AuthState = {
   user: storedAuth.user,
+  me: null,
   tokens: {
     accessToken: storedAuth.token,
     refreshToken: null,
@@ -125,16 +128,16 @@ export const loginUser = createAsyncThunk<
 >("auth/login", async (credentials, { rejectWithValue }) => {
   try {
     const response = await authService.Login(credentials);
-    
+
     if (!response.data.success || response.data.statusCode !== 200) {
       return rejectWithValue(response.data.message || "Login failed");
     }
 
     const token = response.data.data;
     const user = getUserFromToken(token);
-    
-    if (!user) {
-      return rejectWithValue("Invalid token received");
+
+    if (!user || !user.role) {
+      return rejectWithValue("Invalid user data in token");
     }
 
     storeAuthData(token);
@@ -151,8 +154,11 @@ export const logoutUser = createAsyncThunk<void, void, { rejectValue: string }>(
   "auth/logout",
   async (_, { rejectWithValue }) => {
     try {
-      return clearStoredAuth();
-      ;
+      if (typeof window !== "undefined") {
+        // Clear all localStorage items
+        localStorage.clear();
+      }
+      clearStoredAuth();
     } catch (error) {
       if (error instanceof AxiosError) {
         return rejectWithValue(formatError(error.response?.data));
@@ -170,7 +176,7 @@ export const validateToken = createAsyncThunk<
   { rejectValue: string }
 >("auth/validateToken", async (_, { rejectWithValue }) => {
   const { token } = getStoredAuthData();
-  
+
   if (!token) {
     return rejectWithValue("No token found");
   }
@@ -181,6 +187,24 @@ export const validateToken = createAsyncThunk<
   }
 
   return { token, user };
+});
+
+
+export const GetMe = createAsyncThunk<
+  UserProfileResponse,
+  void,
+  { rejectValue: string }
+>("recruiters/getByUserId", async (_, { rejectWithValue }) => {
+  try {
+    const response = await authService.myProfile()
+    return response.data.data;
+  } catch (error: unknown) {
+    if (error instanceof AxiosError) {
+      const message = formatError(error.response?.data);
+      return rejectWithValue(message);
+    }
+    return rejectWithValue("Unknown error occurred");
+  }
 });
 
 // ========== Slice Definition ==========
@@ -255,6 +279,20 @@ const authSlice = createSlice({
         });
       })
 
+      // Get me
+      .addCase(GetMe.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(GetMe.fulfilled, (state, action: PayloadAction<UserProfileResponse>) => {
+        state.loading = false;
+        state.me = action.payload;
+      })
+      .addCase(GetMe.rejected, (state, action) => {
+        state.loading = false;
+
+      })
+
       // Validate Token
       .addCase(validateToken.pending, (state) => {
         state.loading = true;
@@ -289,8 +327,10 @@ export default authSlice.reducer;
 // Selectors
 export const selectAuth = (state: { auth: AuthState }) => state.auth;
 export const selectUser = (state: { auth: AuthState }) => state.auth.user;
-export const selectIsAuthenticated = (state: { auth: AuthState }) =>   state.auth.isAuthenticated;
-export const selectAuthLoading = (state: { auth: AuthState }) =>   state.auth.loading;
-export const selectAuthError = (state: { auth: AuthState }) =>  state.auth.error;
-export const selectAccessToken = (state: { auth: AuthState }) =>   state.auth.tokens.accessToken;
-export const selectPasswordSetSuccess = (state: { auth: AuthState }) =>   state.auth.passwordSetSuccess;
+export const selectMyProfile = (state: { auth: AuthState }) => state.auth.me;
+export const selectUserRole = (state: { auth: AuthState }) => state.auth.user?.role;
+export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated;
+export const selectAuthLoading = (state: { auth: AuthState }) => state.auth.loading;
+export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
+export const selectAccessToken = (state: { auth: AuthState }) => state.auth.tokens.accessToken;
+export const selectPasswordSetSuccess = (state: { auth: AuthState }) => state.auth.passwordSetSuccess;

@@ -18,6 +18,12 @@ class AuthService {
         return http.post(`${USER_URL}`, userData);
     }
 
+    // get me
+    myProfile() {
+        return http.get(`${BASE_URL}/profile`,);
+    }
+
+
     // Get all users with pagination and filtering
     getUsers(params?: GetUsersParams) {
         return http.get(`${USER_URL}`, { params });

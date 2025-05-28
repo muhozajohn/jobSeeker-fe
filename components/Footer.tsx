@@ -1,3 +1,4 @@
+import { currentYear } from '@/utils/formartDate'
 import Link from 'next/link'
 import React from 'react'
 
@@ -72,7 +73,7 @@ const Footer = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 JobConnect. All rights reserved.</p>
+            <p>&copy; {currentYear} JobConnect. All rights reserved.</p>
           </div>
         </div>
       </footer>
