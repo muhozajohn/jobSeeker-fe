@@ -115,7 +115,7 @@ const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAre
                   name="name"
                   value={contactForm.name}
                   onChange={handleContactChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-4 border border-gray-300 rounded-lg "
                   placeholder="Enter your full name"
                 />
               </div>
@@ -129,7 +129,7 @@ const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAre
                   name="email"
                   value={contactForm.email}
                   onChange={handleContactChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-4 border border-gray-300 rounded-lg "
                   placeholder="Enter your email address"
                 />
               </div>
@@ -143,13 +143,13 @@ const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAre
                   value={contactForm.message}
                   onChange={handleContactChange}
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-4 border border-gray-300 rounded-lg "
                   placeholder="Tell us how we can help you..."
                 />
               </div>
               <button
                 onClick={handleContactSubmit}
-                className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-700 transition duration-300"
+                className="w-full bg-orange-400 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-400 transition duration-300"
               >
                 Send Message
               </button>
@@ -203,13 +203,13 @@ const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAre
                   id="subscriptionEmail"
                   value={subscriptionEmail}
                   onChange={(e) => setSubscriptionEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-4 border border-gray-300 rounded-lg  focus:border-transparent"
                   placeholder="Enter your email for updates"
                 />
               </div>
               <button
                 onClick={handleSubscriptionSubmit}
-                className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-700 transition duration-300"
+                className="w-full bg-orange-400 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-500 transition duration-300"
               >
                 Subscribe for Updates
               </button>
