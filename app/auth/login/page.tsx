@@ -81,7 +81,7 @@ export default function LoginPage() {
         <div className="mb-6">
           <Link
             href="/"
-            className="inline-flex items-center text-blue-600 hover:text-blue-700"
+            className="inline-flex items-center text-orange-400 hover:text-orange-500"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
@@ -109,6 +109,7 @@ export default function LoginPage() {
                   id="email"
                   name="email"
                   type="email"
+                  className="!py-6"
                   placeholder="Enter your email"
                   value={formik.values.email}
                   onChange={formik.handleChange}
@@ -124,6 +125,7 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     name="password"
+                    className="!py-6"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={formik.values.password}
@@ -136,7 +138,7 @@ export default function LoginPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-0 top-0 h-full px-3 py-3 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
                   >
@@ -152,7 +154,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <Link
                   href="/auth/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-700"
+                  className="text-sm text-orange-400 hover:text-orange-500"
                 >
                   Forgot password?
                 </Link>
@@ -165,7 +167,7 @@ export default function LoginPage() {
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-orange-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -180,7 +182,7 @@ export default function LoginPage() {
                 Don't have an account?{" "}
                 <Link
                   href="/auth/register"
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-orange-400 hover:text-orange-500 font-medium"
                 >
                   Sign up
                 </Link>

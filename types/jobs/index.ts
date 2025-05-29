@@ -9,6 +9,7 @@ export interface JobResponse {
   workingHours: string;
   isActive: boolean;
   allowMultiple: boolean;
+  urgent  : boolean;
   createdAt: string;
   updatedAt: string;
   categoryId: number;
