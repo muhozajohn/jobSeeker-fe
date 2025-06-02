@@ -10,7 +10,6 @@ import {
 import { logoutUser } from "@/lib/redux/slices/auth/auth.slice";
 import {
   selectRecruiter,
-  getRecruiterById,
   getRecruiterByUserId,
 } from "@/lib/redux/slices/recruiter/recruiterSlice";
 import { RecruiterResponse } from "@/types/recruiter";
@@ -37,13 +36,17 @@ import {
   UserCheck,
   FileText,
   LogOut,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks/hooks";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getUserFromToken, UserInfo } from "@/utils/auth";
-import { selectMyJobs , getMyJobs } from "@/lib/redux/slices/jobs/jobsSlice";
+import { selectMyJobs, getMyJobs } from "@/lib/redux/slices/jobs/jobsSlice";
+import PostJob from "@/components/PostJob";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function RecruiterDashboard() {
   const router = useRouter();
@@ -59,6 +62,7 @@ export default function RecruiterDashboard() {
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [showWorkersDialog, setShowWorkersDialog] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -73,7 +77,7 @@ export default function RecruiterDashboard() {
   };
 
   const recruiterData = useAppSelector(selectRecruiter) as RecruiterResponse;
-  const activeJobs = useAppSelector(selectMyJobs)
+  const activeJobs = useAppSelector(selectMyJobs);
 
   useEffect(() => {
     if (isClient && userD) {
@@ -92,7 +96,6 @@ export default function RecruiterDashboard() {
     }
   }, [dispatch, isClient, userD]);
 
- 
   const stats = {
     activeJobs: 8,
     totalApplications: 156,
@@ -103,7 +106,6 @@ export default function RecruiterDashboard() {
     totalSpent: 45000,
     averageRating: 4.6,
   };
-
 
   const recentApplications = [
     {
@@ -167,6 +169,48 @@ export default function RecruiterDashboard() {
     },
   ];
 
+  const workers = [
+    {
+      id: 1,
+      user: {
+        firstName: "John",
+        lastName: "Doe",
+        avatar: null,
+        email: "john.doe@example.com"
+      },
+      skills: ["Teaching", "Classroom Management"],
+      experience: "5+ years",
+      rating: 4.8,
+      jobsCompleted: 12
+    },
+    {
+      id: 2,
+      user: {
+        firstName: "Maria",
+        lastName: "Garcia",
+        avatar: null,
+        email: "maria.g@example.com"
+      },
+      skills: ["Cleaning", "Organization"],
+      experience: "3 years",
+      rating: 4.5,
+      jobsCompleted: 8
+    },
+    {
+      id: 3,
+      user: {
+        firstName: "David",
+        lastName: "Wilson",
+        avatar: null,
+        email: "david.w@example.com"
+      },
+      skills: ["Security", "Surveillance"],
+      experience: "7 years",
+      rating: 4.9,
+      jobsCompleted: 15
+    }
+  ];
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PENDING":
@@ -219,6 +263,28 @@ export default function RecruiterDashboard() {
     }
   };
 
+  // Skeleton loader for job cards
+  const JobCardSkeleton = () => (
+    <div className="flex items-center justify-between p-4 border rounded-lg">
+      <div className="flex-1 space-y-3">
+        <Skeleton className="h-4 w-[200px]" />
+        <div className="flex space-x-2">
+          <Skeleton className="h-4 w-[60px]" />
+          <Skeleton className="h-4 w-[80px]" />
+        </div>
+        <div className="flex space-x-4">
+          <Skeleton className="h-4 w-[120px]" />
+          <Skeleton className="h-4 w-[100px]" />
+          <Skeleton className="h-4 w-[80px]" />
+        </div>
+      </div>
+      <div className="flex space-x-2">
+        <Skeleton className="h-9 w-[70px]" />
+        <Skeleton className="h-9 w-[70px]" />
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -252,9 +318,7 @@ export default function RecruiterDashboard() {
                 <Bell className="h-4 w-4" />
               </Button>
               <Avatar>
-                <AvatarImage
-                  src={ recruiterData?.user?.avatar  }
-                />
+                <AvatarImage src={recruiterData?.user?.avatar} />
                 <AvatarFallback>
                   {recruiterData?.user?.firstName[0]}
                   {recruiterData?.user?.lastName[0]}
@@ -288,14 +352,16 @@ export default function RecruiterDashboard() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, <b> {recruiterData?.user?.firstName} {recruiterData?.user?.lastName}! 👋</b>
+            Welcome back,{" "}
+            <b>
+              {" "}
+              {recruiterData?.user?.firstName} {recruiterData?.user?.lastName}!
+              👋
+            </b>
           </h1>
           <p className="text-gray-600">
             Manage your job postings and track applications for{" "}
-            <i className=" font-semibold ">
-            {recruiterData?.companyName}
-
-            </i>
+            <i className=" font-semibold ">{recruiterData?.companyName}</i>
           </p>
         </div>
 
@@ -365,10 +431,11 @@ export default function RecruiterDashboard() {
           {/* Left Column */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="jobs" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="jobs">Job Posts</TabsTrigger>
                 <TabsTrigger value="applications">Applications</TabsTrigger>
                 <TabsTrigger value="assignments">Work Assignments</TabsTrigger>
+                <TabsTrigger value="workers">Workers</TabsTrigger>
               </TabsList>
 
               <TabsContent value="jobs" className="space-y-4">
@@ -380,67 +447,93 @@ export default function RecruiterDashboard() {
                         Manage your current job listings
                       </CardDescription>
                     </div>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Post New Job
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Post New Job
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Post a New Job</DialogTitle>
+                        </DialogHeader>
+                        <PostJob />
+                      </DialogContent>
+                    </Dialog>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {activeJobs.map((job) => (
-                        <div
-                          key={job.id}
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold text-gray-900">
-                                {job.title}
-                              </h3>
-                              <Badge variant="secondary">
-                                {job.category.name}
-                              </Badge>
-                              {job.allowMultiple && (
-                                <Badge variant="outline">
-                                  Multiple Workers
+                      {isFetching ? (
+                        // Show skeleton loaders while loading
+                        <>
+                          <JobCardSkeleton />
+                          <JobCardSkeleton />
+                          <JobCardSkeleton />
+                        </>
+                      ) : activeJobs.length > 0 ? (
+                        activeJobs.map((job) => (
+                          <div
+                            key={job.id}
+                            className="flex items-center justify-between p-4 border rounded-lg"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="font-semibold text-gray-900">
+                                  {job.title}
+                                </h3>
+                                <Badge variant="secondary">
+                                  {job.category.name}
                                 </Badge>
-                              )}
+                                {job.allowMultiple && (
+                                  <Badge variant="outline">
+                                    Multiple Workers
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center text-sm text-gray-500 space-x-4">
+                                <div className="flex items-center">
+                                  <MapPin className="h-4 w-4 mr-1" />
+                                  {job.location}
+                                </div>
+                                <div className="flex items-center">
+                                  <DollarSign className="h-4 w-4 mr-1" />
+                                  {formatSalary(job.salary, job.salaryType)}
+                                </div>
+                                <div className="flex items-center">
+                                  <Clock className="h-4 w-4 mr-1" />
+                                  {job.workingHours}
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center text-sm text-gray-500 space-x-4">
-                              <div className="flex items-center">
-                                <MapPin className="h-4 w-4 mr-1" />
-                                {job.location}
-                              </div>
-                              <div className="flex items-center">
-                                <DollarSign className="h-4 w-4 mr-1" />
-                                {formatSalary(job.salary, job.salaryType)}
-                              </div>
-                              <div className="flex items-center">
-                                <Clock className="h-4 w-4 mr-1" />
-                                {job.workingHours}
-                              </div>
+                            <div className="flex space-x-2">
+                              <Button size="sm" variant="outline">
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                              <Button size="sm">Edit</Button>
                             </div>
-                            {/* <div className="flex items-center mt-2 text-sm">
-                              <span className="text-gray-600">
-                                {job.applications.length} applications •{" "}
-                                {
-                                  job.applications.filter(
-                                    (app) => app.status === "PENDING"
-                                  ).length
-                                }{" "}
-                                pending
-                              </span>
-                            </div> */}
                           </div>
-                          <div className="flex space-x-2">
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
-                            </Button>
-                            <Button size="sm">Edit</Button>
-                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-gray-500">No active jobs found</p>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button className="mt-4">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Post Your First Job
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Post a New Job</DialogTitle>
+                              </DialogHeader>
+                              <PostJob />
+                            </DialogContent>
+                          </Dialog>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -588,6 +681,69 @@ export default function RecruiterDashboard() {
                   </CardContent>
                 </Card>
               </TabsContent>
+              <TabsContent value="workers" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Active Work Assignments</CardTitle>
+                    <CardDescription>
+                      Monitor ongoing work assignments
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {activeAssignments.map((assignment) => (
+                        <div
+                          key={assignment.id}
+                          className="flex items-center justify-between p-4 border rounded-lg"
+                        >
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900">
+                              {assignment.job.title}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              Worker: {assignment.worker.user.firstName}{" "}
+                              {assignment.worker.user.lastName}
+                            </p>
+                            <div className="flex items-center mt-2 text-sm text-gray-500">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              {new Date(
+                                assignment.workDate
+                              ).toLocaleDateString()}
+                              <span className="mx-2">•</span>
+                              {new Date(
+                                assignment.startTime
+                              ).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}{" "}
+                              -{" "}
+                              {new Date(assignment.endTime).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
+                            </div>
+                            {assignment.notes && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                {assignment.notes}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button size="sm" variant="outline">
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              Message
+                            </Button>
+                            <Button size="sm">View Details</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </div>
 
@@ -599,14 +755,75 @@ export default function RecruiterDashboard() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full" variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Post New Job
-                </Button>
-                <Button className="w-full" variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  Browse Workers
-                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full" variant="outline">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Post New Job
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Post a New Job</DialogTitle>
+                    </DialogHeader>
+                    <PostJob />
+                  </DialogContent>
+                </Dialog>
+                
+                <Dialog open={showWorkersDialog} onOpenChange={setShowWorkersDialog}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full" variant="outline">
+                      <Users className="h-4 w-4 mr-2" />
+                      Browse Workers
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Available Workers</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {workers.map((worker) => (
+                        <div key={worker.id} className="flex items-start p-4 border rounded-lg">
+                          <Avatar className="h-10 w-10 mr-4">
+                            <AvatarImage src={worker.user.avatar || undefined} />
+                            <AvatarFallback>
+                              {worker.user.firstName[0]}{worker.user.lastName[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <h3 className="font-medium">
+                              {worker.user.firstName} {worker.user.lastName}
+                            </h3>
+                            <p className="text-sm text-gray-600">{worker.user.email}</p>
+                            <div className="flex items-center mt-1 text-sm">
+                              <span className="text-yellow-600">★ {worker.rating}</span>
+                              <span className="mx-2">•</span>
+                              <span>{worker.jobsCompleted} jobs completed</span>
+                            </div>
+                            <div className="mt-2">
+                              <p className="text-sm font-medium">Skills:</p>
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {worker.skills.map((skill, index) => (
+                                  <Badge key={index} variant="outline">
+                                    {skill}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col space-y-2">
+                            <Button size="sm">View Profile</Button>
+                            <Button size="sm" variant="outline">
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Message
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <Button className="w-full" variant="outline">
                   <TrendingUp className="h-4 w-4 mr-2" />
                   View Analytics
@@ -655,35 +872,7 @@ export default function RecruiterDashboard() {
               </CardContent>
             </Card>
 
-            {/* Performance Metrics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance</CardTitle>
-                <CardDescription>Your hiring statistics</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Response Rate</span>
-                  <span className="text-sm text-gray-600">85%</span>
-                </div>
-                <Progress value={85} />
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Hire Success Rate</span>
-                  <span className="text-sm text-gray-600">72%</span>
-                </div>
-                <Progress value={72} />
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    Worker Satisfaction
-                  </span>
-                  <span className="text-sm text-gray-600">4.6/5</span>
-                </div>
-                <Progress value={92} />
-              </CardContent>
-            </Card>
-
+           
             {/* Recent Activity */}
             <Card>
               <CardHeader>
