@@ -38,18 +38,13 @@ const publicNavItems = [
 ];
 
 const workerNavItems = [
+  ...publicNavItems,
   { name: "Dashboard", path: "/dashboard/worker", icon: LayoutDashboard },
-  { name: "Find Jobs", path: "/jobs", icon: Search },
-  { name: "My Applications", path: "/dashboard/worker/applications", icon: ClipboardList },
-  { name: "My Profile", path: "/dashboard/worker/profile", icon: User },
 ];
 
 const recruiterNavItems = [
   { name: "Dashboard", path: "/dashboard/recruiter", icon: LayoutDashboard },
-  { name: "Post Job", path: "/dashboard/recruiter/jobs/create", icon: FileText },
-  { name: "My Jobs", path: "/dashboard/recruiter/jobs", icon: Briefcase },
-  { name: "Applications", path: "/dashboard/recruiter/applications", icon: ClipboardList },
-  { name: "Company", path: "/dashboard/recruiter/company", icon: Building },
+  { name: "Workers", path: "/workers", icon: Users },
 ];
 
 const adminNavItems = [
@@ -122,11 +117,11 @@ const UserMenu = ({ userRole, onLogout }: UserMenuProps) => {
   const getProfilePath = () => {
     switch (userRole) {
       case 'ADMIN':
-        return '/dashboard/admin/profile';
+        return '/profile';
       case 'RECRUITER':
-        return '/dashboard/recruiter/profile';
+        return '/profile';
       case 'WORKER':
-        return '/dashboard/worker/profile';
+        return '/profile';
       default:
         return '/profile';
     }
@@ -135,11 +130,11 @@ const UserMenu = ({ userRole, onLogout }: UserMenuProps) => {
   const getSettingsPath = () => {
     switch (userRole) {
       case 'ADMIN':
-        return '/dashboard/admin/settings';
+        return '/settings';
       case 'RECRUITER':
-        return '/dashboard/recruiter/settings';
+        return '/settings';
       case 'WORKER':
-        return '/dashboard/worker/settings';
+        return '/settings';
       default:
         return '/settings';
     }
@@ -196,27 +191,6 @@ const UserMenu = ({ userRole, onLogout }: UserMenuProps) => {
               Settings
             </Link>
             
-            {userRole === 'WORKER' && (
-              <Link
-                href="/dashboard/worker/applications"
-                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                onClick={() => setIsOpen(false)}
-              >
-                <ClipboardList size={16} />
-                My Applications
-              </Link>
-            )}
-            
-            {userRole === 'RECRUITER' && (
-              <Link
-                href="/dashboard/recruiter/company"
-                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                onClick={() => setIsOpen(false)}
-              >
-                <Building size={16} />
-                Company Profile
-              </Link>
-            )}
             
             <hr className="my-2" />
             
