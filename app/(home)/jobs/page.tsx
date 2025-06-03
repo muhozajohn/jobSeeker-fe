@@ -1,4 +1,6 @@
-import JobsPage from '@/pages/JobsPage'
+'use client'
+
+import JobsPage from '@/components/JobsPage'
 import React from 'react'
 
 const HomeJobs = () => {
