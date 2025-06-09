@@ -63,6 +63,7 @@ export default function RecruiterDashboard() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [showWorkersDialog, setShowWorkersDialog] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -447,7 +448,7 @@ export default function RecruiterDashboard() {
                         Manage your current job listings
                       </CardDescription>
                     </div>
-                    <Dialog>
+                    <Dialog open={isOpen} onOpenChange={setIsOpen}>
                       <DialogTrigger asChild>
                         <Button>
                           <Plus className="h-4 w-4 mr-2" />
@@ -458,7 +459,7 @@ export default function RecruiterDashboard() {
                         <DialogHeader>
                           <DialogTitle>Post a New Job</DialogTitle>
                         </DialogHeader>
-                        <PostJob />
+                         <PostJob closeModal={() => setIsOpen(false)} />
                       </DialogContent>
                     </Dialog>
                   </CardHeader>

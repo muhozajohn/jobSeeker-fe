@@ -39,6 +39,7 @@ export interface JobApiResponse {
 export interface CreateJobDto {
   title: string;
   description: string;
+  skills: string[];
   location: string;
   salary: number;
   salaryType: string;
