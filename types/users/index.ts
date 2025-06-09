@@ -63,3 +63,31 @@ export interface UserProfileResponse {
     email: string;
     role: Role
 }
+
+
+export interface User {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  avatar: string | null;
+  role: 'ADMIN' | 'RECRUITER' | 'WORKER';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UsersData {
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  users: User[];
+}
+
+export interface UsersResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: UsersData;
+}
