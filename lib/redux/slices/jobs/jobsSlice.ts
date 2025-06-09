@@ -30,6 +30,12 @@ export const createJob = createAsyncThunk<
 >("jobs/create", async (jobData, { rejectWithValue }) => {
     try {
         const response = await jobService.createJob(jobData);
+        if (!response.data.success) {
+            const message = formatError(response.data);
+            Toast({ message, type: "error" });
+            return rejectWithValue(message);
+        }
+
         Toast({
             message: "Job created successfully",
             type: "success",
