@@ -4,6 +4,7 @@ import usersReducer from "../slices/auth/user.Slice";
 import recruitersReducer from "../slices/recruiter/recruiterSlice";
 import jobsReducer from "../slices/jobs/jobsSlice";
 import jobCategoriesReducer from "../slices/JobCategories/JobCategoriesSlice";
+import applicationsReducer from "../slices/applications/applicationSlice";
 
 const rootReducer = combineReducers({
 
@@ -12,6 +13,7 @@ const rootReducer = combineReducers({
     recruiters: recruitersReducer,
     jobs: jobsReducer,
     jobCategories: jobCategoriesReducer,
+    applications: applicationsReducer,
 
 });
 

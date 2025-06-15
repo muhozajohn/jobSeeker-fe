@@ -27,6 +27,9 @@ export interface JobResponse {
     email: string;
     avatar: string;
   };
+  skills?: string[]; 
+  applications?: JobApplication[]; 
+  workAssignments?: WorkAssignment[];
 }
 
 export interface JobApiResponse {
@@ -35,6 +38,31 @@ export interface JobApiResponse {
   message: string;
   data: JobResponse | JobResponse[];
 }
+
+export interface JobApplication {
+  id: number;
+  message: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+  appliedAt: string;
+  updatedAt: string;
+  jobId: number;
+  workerId: number;
+}
+
+export interface WorkAssignment {
+  id: number;
+  startTime: string;
+  endTime: string;
+  workDate: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  jobId: number;
+  workerId: number;
+  recruiterId: number;
+}
+
 
 export interface CreateJobDto {
   title: string;

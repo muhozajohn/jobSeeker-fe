@@ -1,6 +1,6 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { JobResponse, JobApiResponse, CreateJobDto, UpdateJobDto } from "@/types/jobs";
+import { JobResponse, CreateJobDto, UpdateJobDto } from "@/types/jobs";
 import { formatError } from "@/utils/errors";
 import { AxiosError } from "axios";
 import Toast from "@/components/Toasty";
@@ -138,8 +138,8 @@ export const deleteJob = createAsyncThunk<
     { rejectValue: string }
 >("jobs/delete", async (id, { rejectWithValue }) => {
     try {
-        await jobService.deleteJob(id);
-        Toast({
+     await jobService.deleteJob(id);
+           Toast({
             message: "Job deleted successfully",
             type: "success",
             title: "Success"
