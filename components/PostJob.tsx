@@ -30,8 +30,19 @@ import { FormError } from "@/utils/FormError";
 import { selectJobCategories, getJobCategories } from "@/lib/redux/slices/JobCategories/JobCategoriesSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks/hooks";
 import { createJob } from "@/lib/redux/slices/jobs/jobsSlice";
+import { CreateJobDto } from "@/types/jobs";
 
-export default function PostJob({ closeModal }: { closeModal?: () => void }) {
+interface PostJobProps {
+  closeModal?: () => void;
+  onSubmit?: (values: CreateJobDto) => void;
+  isEditMode?: boolean;
+}
+
+export default function PostJob({ 
+  closeModal, 
+  onSubmit,
+  isEditMode = false 
+}: PostJobProps) {
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +78,7 @@ export default function PostJob({ closeModal }: { closeModal?: () => void }) {
   ];
 
   const formik = useFormik({
-    initialValues: {
+    initialValues:  {
       title: "",
       categoryId: "",
       description: "",
@@ -89,17 +100,18 @@ export default function PostJob({ closeModal }: { closeModal?: () => void }) {
           categoryId: Number(values.categoryId),
           salary: Number(values.salary),
         };
-        const resultAction = await dispatch(createJob(jobData));
-        if (createJob.fulfilled.match(resultAction)) {
-          formik.resetForm();
-          setSkills([]);
-          setNewSkill("");
-
-          if (closeModal) closeModal();
+        
+        if (isEditMode && onSubmit) {
+          await onSubmit(jobData);
         } else {
-          console.error("Failed to post job:", resultAction.error);
+          const resultAction = await dispatch(createJob(jobData));
+          if (createJob.fulfilled.match(resultAction)) {
+            formik.resetForm();
+            setSkills([]);
+            setNewSkill("");
+            if (closeModal) closeModal();
+          }
         }
-        // Handle success - maybe redirect or show success message
       } catch (error) {
         console.error("Error posting job:", error);
       } finally {
@@ -539,10 +551,15 @@ export default function PostJob({ closeModal }: { closeModal?: () => void }) {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Posting...
+                      {
+                        isEditMode ? "Updating..." : "Posting..."
+                      }
                     </span>
-                  ) : "Post Job"}
+              
+                  ) :  isEditMode ? "Update Job" :  "Post Job"}
                 </Button>
+
+                
               </div>
             </div>
           </form>

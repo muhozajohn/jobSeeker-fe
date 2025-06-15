@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -27,9 +27,7 @@ import {
   Calendar,
   Briefcase,
   Building,
-  Phone,
   Mail,
-  Globe,
   CheckCircle,
   Bookmark,
   BookmarkCheck,
@@ -37,14 +35,23 @@ import {
   Flag,
   Upload,
   FileText,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
+import { JobResponse } from "@/types/jobs"
+import { getJobById, selectCurrentJob } from "@/lib/redux/slices/jobs/jobsSlice"
+import { useAppDispatch, useAppSelector } from "@/lib/hooks/hooks"
+
 
 export default function JobDetailPage() {
   const params = useParams()
   const jobId = params?.id
+  const dispatch = useAppDispatch()
+  const job = useAppSelector(selectCurrentJob) as JobResponse
 
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isApplying, setIsApplying] = useState(false)
   const [applicationSubmitted, setApplicationSubmitted] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
@@ -55,95 +62,32 @@ export default function JobDetailPage() {
     additionalInfo: "",
   })
 
-  // Mock job data - in a real app, this would be fetched based on the jobId
-  const job = {
-    id: Number.parseInt(jobId as string) || 1,
-    title: "Elementary School Teacher",
-    category: { name: "Teacher", id: 1 },
-    description: `We are seeking a passionate and dedicated Elementary School Teacher to join our team at Sunshine Elementary School. The ideal candidate will have experience working with children ages 6-11 and a strong commitment to fostering a positive learning environment.
-
-Key Responsibilities:
-• Develop and implement engaging lesson plans aligned with curriculum standards
-• Create a supportive and inclusive classroom environment
-• Assess student progress and provide constructive feedback
-• Collaborate with parents, colleagues, and administrators
-• Participate in school events and professional development activities
-• Maintain accurate records of student attendance and academic performance
-
-We offer a collaborative work environment, competitive compensation, and opportunities for professional growth. Join our team and make a difference in young students' lives!`,
-    requirements: `Required Qualifications:
-• Bachelor's degree in Education or related field
-• Valid teaching certification/license
-• 2+ years of elementary teaching experience
-• Strong classroom management skills
-• Excellent communication and interpersonal skills
-• Proficiency in educational technology and digital tools
-• CPR and First Aid certification preferred
-
-Preferred Qualifications:
-• Master's degree in Education
-• Experience with diverse student populations
-• Bilingual capabilities (English/Spanish)
-• Knowledge of special education practices`,
-    location: "Manhattan, NY",
-    salary: 45000,
-    salaryType: "YEARLY",
-    workingHours: "8:00 AM - 3:00 PM",
-    isActive: true,
-    allowMultiple: false,
-    urgent: false,
-    createdAt: "2024-01-15T10:00:00Z",
-    updatedAt: "2024-01-15T10:00:00Z",
-    expiresAt: "2024-02-15T10:00:00Z",
-    recruiter: {
-      id: 1,
-      user: {
-        firstName: "Sarah",
-        lastName: "Johnson",
-        email: "sarah.johnson@sunshineelementary.edu",
-        phone: "+1 (555) 123-4567",
-        avatar: null,
-      },
-      companyName: "Sunshine Elementary School",
-      type: "COMPANY",
-      description:
-        "A leading elementary school committed to providing quality education and fostering student growth in a nurturing environment.",
-      location: "Manhattan, NY",
-      website: "https://sunshineelementary.edu",
-      verified: true,
-    },
-    applications: [
-      { id: 1, status: "PENDING" },
-      { id: 2, status: "PENDING" },
-      { id: 3, status: "ACCEPTED" },
-    ],
-    skills: [
-      "Teaching",
-      "Classroom Management",
-      "Curriculum Development",
-      "Student Assessment",
-      "Educational Technology",
-    ],
-    benefits: [
-      "Health Insurance",
-      "Dental Coverage",
-      "Vision Insurance",
-      "Retirement Plan (403b)",
-      "Paid Time Off",
-      "Professional Development",
-      "Tuition Reimbursement",
-    ],
-  }
+  useEffect(() => {
+    if (jobId) {
+      setIsLoading(true)
+      setError(null)
+      
+      dispatch(getJobById(Number(jobId)))
+        .unwrap()
+        .then(() => {
+          setIsLoading(false)
+        })
+        .catch((err) => {
+          setError(err.message || "Failed to load job details")
+          setIsLoading(false)
+        })
+    }
+  }, [jobId, dispatch])
 
   const formatSalary = (amount: number, type: string) => {
     const formatMap = {
-      HOURLY: `$${amount}/hr`,
-      DAILY: `$${amount}/day`,
-      WEEKLY: `$${amount}/week`,
+      HOURLY: `$${amount.toLocaleString()}/hr`,
+      DAILY: `$${amount.toLocaleString()}/day`,
+      WEEKLY: `$${amount.toLocaleString()}/week`,
       MONTHLY: `$${amount.toLocaleString()}/month`,
       YEARLY: `$${amount.toLocaleString()}/year`,
     }
-    return formatMap[type as keyof typeof formatMap] || `$${amount}`
+    return formatMap[type as keyof typeof formatMap] || `$${amount.toLocaleString()}`
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -156,11 +100,11 @@ Preferred Qualifications:
   const handleApply = async () => {
     setIsApplying(true)
     try {
-      // Simulate API call
+      // Simulate API call - replace with actual API endpoint
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
       console.log("Application submitted:", {
-        jobId: job.id,
+        jobId: job?.id,
         ...applicationData,
       })
 
@@ -176,8 +120,37 @@ Preferred Qualifications:
     setIsSaved(!isSaved)
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 mx-auto text-blue-600 animate-spin mb-4" />
+          <p className="text-gray-600">Loading job details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !job) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Job Not Found</h2>
+          <p className="text-gray-600 mb-4">{error || "The job you're looking for doesn't exist."}</p>
+          <Link href="/jobs">
+            <Button>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Jobs
+            </Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const daysAgo = Math.floor((Date.now() - new Date(job.createdAt).getTime()) / (1000 * 60 * 60 * 24))
-  const applicantCount = job.applications.length
+  const applicantCount = job.applications?.length || 0
+  const fullName = `${job.recruiter.firstName} ${job.recruiter.lastName}`
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -185,15 +158,7 @@ Preferred Qualifications:
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link href="/jobs" className="inline-flex items-center text-blue-600 hover:text-blue-700 mr-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Jobs
-              </Link>
-              <Link href="/" className="text-2xl font-bold text-blue-600">
-                JobConnect
-              </Link>
-            </div>
+           
             <div className="flex items-center space-x-3">
               <Button variant="outline" size="sm" onClick={toggleSaveJob}>
                 {isSaved ? (
@@ -234,7 +199,7 @@ Preferred Qualifications:
                         </Badge>
                       )}
                     </div>
-                    <p className="text-lg text-gray-600 mb-4">{job.recruiter.companyName}</p>
+                    <p className="text-lg text-gray-600 mb-4">{fullName}</p>
 
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                       <div className="flex items-center">
@@ -275,7 +240,7 @@ Preferred Qualifications:
                         <DialogHeader>
                           <DialogTitle>Apply for {job.title}</DialogTitle>
                           <DialogDescription>
-                            Submit your application for this position at {job.recruiter.companyName}
+                            Submit your application for this position with {fullName}
                           </DialogDescription>
                         </DialogHeader>
 
@@ -296,7 +261,7 @@ Preferred Qualifications:
                               <Label htmlFor="expectedSalary">Expected Salary</Label>
                               <Input
                                 id="expectedSalary"
-                                placeholder="e.g., $45,000"
+                                placeholder={`e.g., ${formatSalary(job.salary, job.salaryType)}`}
                                 value={applicationData.expectedSalary}
                                 onChange={(e) => handleInputChange("expectedSalary", e.target.value)}
                               />
@@ -364,11 +329,10 @@ Preferred Qualifications:
 
             {/* Job Details Tabs */}
             <Tabs defaultValue="description" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="description">Description</TabsTrigger>
                 <TabsTrigger value="requirements">Requirements</TabsTrigger>
-                <TabsTrigger value="company">Company</TabsTrigger>
-                <TabsTrigger value="benefits">Benefits</TabsTrigger>
+                <TabsTrigger value="recruiter">Recruiter</TabsTrigger>
               </TabsList>
 
               <TabsContent value="description" className="space-y-4">
@@ -377,21 +341,27 @@ Preferred Qualifications:
                     <CardTitle>Job Description</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="prose max-w-none">
+                     <div>
+                        {/* <h3 className="text-xl font-semibold mb-1">{fullName}</h3> */}
+                        <p className="text-gray-600 font-semibold mb-2">Job Category: {job.category.name}</p>
+                        <p className="text-gray-600 mb-2">{job.category.description}</p>
+                    </div>
+                    <div className="prose max-w-none mt-2">
                       <p className="text-gray-700 whitespace-pre-line">{job.description}</p>
                     </div>
+                      
                   </CardContent>
                 </Card>
 
-                {job.skills.length > 0 && (
+                {job.skills && job.skills.length > 0 && (
                   <Card>
                     <CardHeader>
                       <CardTitle>Required Skills</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-wrap gap-2">
-                        {job.skills.map((skill) => (
-                          <Badge key={skill} variant="outline">
+                        {job.skills.map((skill, index) => (
+                          <Badge key={index} variant="outline">
                             {skill}
                           </Badge>
                         ))}
@@ -414,63 +384,29 @@ Preferred Qualifications:
                 </Card>
               </TabsContent>
 
-              <TabsContent value="company" className="space-y-4">
+              <TabsContent value="recruiter" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>About {job.recruiter.companyName}</CardTitle>
+                    <CardTitle>About the Recruiter</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-start space-x-4 mb-4">
                       <Avatar className="h-16 w-16">
-                        <AvatarImage src={job.recruiter.user.avatar || "/placeholder.svg?height=64&width=64"} />
                         <AvatarFallback className="text-lg">
-                          <Building className="h-8 w-8" />
+                          {job.recruiter.firstName.charAt(0)}{job.recruiter.lastName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-xl font-semibold">{job.recruiter.companyName}</h3>
-                          {job.recruiter.verified && (
-                            <Badge variant="default" className="bg-green-600">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Verified
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-gray-600 mb-2">{job.recruiter.description}</p>
+                        <h3 className="text-xl font-semibold mb-1">{fullName}</h3>
+                        {/* <p className="text-gray-600 mb-2">Job Category: {job.category.name}</p> */}
+                        {/* <p className="text-gray-600 mb-2">{job.category.description}</p> */}
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
                           <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-1" />
-                            {job.recruiter.location}
+                            <Mail className="h-4 w-4 mr-1" />
+                            <span>{job.recruiter.email}</span>
                           </div>
-                          {job.recruiter.website && (
-                            <div className="flex items-center">
-                              <Globe className="h-4 w-4 mr-1" />
-                              <a href={job.recruiter.website} className="text-blue-600 hover:underline">
-                                Website
-                              </a>
-                            </div>
-                          )}
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="benefits" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Benefits & Perks</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {job.benefits.map((benefit) => (
-                        <div key={benefit} className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-gray-700">{benefit}</span>
-                        </div>
-                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -488,24 +424,30 @@ Preferred Qualifications:
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-sm font-medium text-gray-600">Job Type</span>
-                  <span className="text-sm text-gray-900">Full-time</span>
+                  <span className="text-sm text-gray-900">{job.allowMultiple ? "Multiple positions" : "Single position"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-600">Experience Level</span>
-                  <span className="text-sm text-gray-900">Mid-level</span>
+                  <span className="text-sm font-medium text-gray-600">Status</span>
+                  <span className="text-sm text-gray-900">{job.isActive ? "Active" : "Inactive"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm font-medium text-gray-600">Posted</span>
                   <span className="text-sm text-gray-900">{daysAgo} days ago</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-600">Expires</span>
-                  <span className="text-sm text-gray-900">{new Date(job.expiresAt).toLocaleDateString()}</span>
+                  <span className="text-sm font-medium text-gray-600">Updated</span>
+                  <span className="text-sm text-gray-900">{new Date(job.updatedAt).toLocaleDateString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm font-medium text-gray-600">Applications</span>
                   <span className="text-sm text-gray-900">{applicantCount} received</span>
                 </div>
+                {job.workAssignments && job.workAssignments.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-gray-600">Work Assignments</span>
+                    <span className="text-sm text-gray-900">{job.workAssignments.length} active</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -517,49 +459,44 @@ Preferred Qualifications:
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-3">
                   <Mail className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-700">{job.recruiter.user.email}</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-700">{job.recruiter.user.phone}</span>
+                  <span className="text-sm text-gray-700">{job.recruiter.email}</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Building className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-700">{job.recruiter.companyName}</span>
+                  <span className="text-sm text-gray-700">{fullName}</span>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Similar Jobs */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Similar Jobs</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="p-3 border rounded-lg">
-                    <h4 className="font-medium text-sm">Middle School Teacher</h4>
-                    <p className="text-xs text-gray-600">Brooklyn Academy</p>
-                    <p className="text-xs text-gray-500">$42,000/year • Brooklyn, NY</p>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <h4 className="font-medium text-sm">Substitute Teacher</h4>
-                    <p className="text-xs text-gray-600">NYC Department of Education</p>
-                    <p className="text-xs text-gray-500">$200/day • Various locations</p>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <h4 className="font-medium text-sm">Private Tutor</h4>
-                    <p className="text-xs text-gray-600">EduCare Services</p>
-                    <p className="text-xs text-gray-500">$30/hour • Manhattan, NY</p>
-                  </div>
-                </div>
-                <Link href="/jobs">
-                  <Button variant="outline" size="sm" className="w-full">
-                    View More Jobs
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+            {/* Work Assignments (if any) */}
+            {job.workAssignments && job.workAssignments.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Work Assignments</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {job.workAssignments.map((assignment) => (
+                    <div key={assignment.id} className="p-3 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant={assignment.status === "ACTIVE" ? "default" : "secondary"}>
+                          {assignment.status}
+                        </Badge>
+                        <span className="text-xs text-gray-500">
+                          {new Date(assignment.workDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {new Date(assignment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                        {new Date(assignment.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {assignment.notes && (
+                        <p className="text-xs text-gray-500 mt-1">{assignment.notes}</p>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
