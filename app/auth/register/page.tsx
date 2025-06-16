@@ -196,9 +196,9 @@ export default function RegisterPage() {
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="WORKER">
+                    {/* <SelectItem value="WORKER">
                       Worker (Looking for jobs)
-                    </SelectItem>
+                    </SelectItem> */}
                     <SelectItem value="RECRUITER">
                       Recruiter (Hiring workers)
                     </SelectItem>
