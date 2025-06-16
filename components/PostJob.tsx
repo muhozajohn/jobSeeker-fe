@@ -36,12 +36,14 @@ interface PostJobProps {
   closeModal?: () => void;
   onSubmit?: (values: CreateJobDto) => void;
   isEditMode?: boolean;
+  initialValues?: CreateJobDto; 
 }
 
 export default function PostJob({ 
   closeModal, 
   onSubmit,
-  isEditMode = false 
+  isEditMode = false,
+  initialValues 
 }: PostJobProps) {
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
@@ -77,8 +79,13 @@ export default function PostJob({
     "Weekend Only",
   ];
 
-  const formik = useFormik({
-    initialValues:  {
+const formik = useFormik({
+  initialValues: isEditMode && initialValues ? 
+    {
+      ...initialValues,
+      categoryId: initialValues.categoryId.toString(), // Ensure categoryId is a string
+      salary: initialValues.salary.toString(), // Ensure salary is a string
+    } : {
       title: "",
       categoryId: "",
       description: "",

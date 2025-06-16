@@ -18,7 +18,7 @@ import {
   getJobById,
 } from "@/lib/redux/slices/jobs/jobsSlice";
 import { RecruiterResponse } from "@/types/recruiter";
-import { JobApplication, JobResponse, UpdateJobDto } from "@/types/jobs";
+import { JobResponse, UpdateJobDto } from "@/types/jobs";
 
 // Components
 import PostJob from "@/components/PostJob";
@@ -78,9 +78,17 @@ import {
   Pencil,
 } from "lucide-react";
 import { formatSalary } from "@/utils/formaSalary";
-import { selectApplications , getApplications } from "@/lib/redux/slices/applications/applicationSlice";
-import { Application , Worker , } from "@/types/application/application";
-
+import {
+  selectApplications,
+  getApplications,
+} from "@/lib/redux/slices/applications/applicationSlice";
+import { Application } from "@/types/application/application";
+import {
+  getWorkAssignmentsByRecruiter,
+  selectRecruiterAssignments,
+} from "@/lib/redux/slices/assignments/assignmentSlice";
+import { WorkAssignmentResponse } from "@/types/workerAssignment/assignment";
+import { Worker } from "@/types/application/application";
 
 const stats = {
   activeJobs: 8,
@@ -92,21 +100,6 @@ const stats = {
   totalSpent: 45000,
   averageRating: 4.6,
 };
-
-
-const activeAssignments = [
-  {
-    id: 1,
-    job: { title: "Morning House Cleaning", category: { name: "Cleaner" } },
-    worker: { user: { firstName: "Maria", lastName: "Garcia" } },
-    workDate: "2024-01-20T00:00:00Z",
-    startTime: "2024-01-20T08:00:00Z",
-    endTime: "2024-01-20T12:00:00Z",
-    status: "ACTIVE",
-    notes: "Regular weekly cleaning service",
-  },
-  // ... other mock data
-];
 
 const workers = [
   {
@@ -141,7 +134,12 @@ const RecruiterDashboard = () => {
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
   const recruiterData = useAppSelector(selectRecruiter) as RecruiterResponse;
-  const recentApplications = useAppSelector(selectApplications) as Application[];
+  const recentApplications = useAppSelector(
+    selectApplications
+  ) as Application[];
+  const activeAssignments = useAppSelector(
+    selectRecruiterAssignments
+  ) as WorkAssignmentResponse[];
 
   const activeJobs = useAppSelector(selectMyJobs);
 
@@ -152,15 +150,23 @@ const RecruiterDashboard = () => {
     setUser(userData);
   }, []);
 
-  // Fetch recruiter and job data
   useEffect(() => {
     if (isClient && userD) {
       const fetchData = async () => {
         setIsFetching(true);
         try {
-          await dispatch(getRecruiterByUserId(Number(userD.id)));
-          await dispatch(getMyJobs());
-          await dispatch(getApplications());
+          // First get recruiter data and wait for it to complete
+          const recruiterAction = await dispatch(
+            getRecruiterByUserId(Number(userD.id))
+          );
+          const recruiter = recruiterAction.payload as RecruiterResponse;
+
+          // Then get other data that depends on recruiter
+          await Promise.all([
+            dispatch(getMyJobs()),
+            dispatch(getApplications()),
+            dispatch(getWorkAssignmentsByRecruiter(Number(recruiter.id))),
+          ]);
         } catch (error) {
           console.error("Error fetching data:", error);
         } finally {
@@ -300,6 +306,11 @@ const RecruiterDashboard = () => {
           <PostJob
             onSubmit={handleUpdateJob}
             isEditMode={true}
+            initialValues={{
+              ...selectedJob,
+              salary: selectedJob.salary.toString(),
+              categoryId: selectedJob.category.id.toString(),
+            }}
             closeModal={() => setIsEditModalOpen(false)}
           />
         )}
@@ -321,7 +332,7 @@ const RecruiterDashboard = () => {
                 )}
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center gap-2">
@@ -330,7 +341,9 @@ const RecruiterDashboard = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-gray-500" />
-                  <span>{formatSalary(selectedJob.salary, selectedJob.salaryType)}</span>
+                  <span>
+                    {formatSalary(selectedJob.salary, selectedJob.salaryType)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-gray-500" />
@@ -352,18 +365,20 @@ const RecruiterDashboard = () => {
               <div>
                 <h4 className="font-medium mb-2">Requirements</h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedJob.requirements.split(',').map((req: string, i: number) => (
-                    <Badge key={i} variant="outline" className="text-sm">
-                      {req.trim()}
-                    </Badge>
-                  ))}
+                  {selectedJob.requirements
+                    .split(",")
+                    .map((req: string, i: number) => (
+                      <Badge key={i} variant="outline" className="text-sm">
+                        {req.trim()}
+                      </Badge>
+                    ))}
                 </div>
               </div>
             </div>
 
             <DialogFooter className="mt-6">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setIsViewModalOpen(false);
                   setIsEditModalOpen(true);
@@ -372,9 +387,7 @@ const RecruiterDashboard = () => {
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Job
               </Button>
-              <Button onClick={() => setIsViewModalOpen(false)}>
-                Close
-              </Button>
+              <Button onClick={() => setIsViewModalOpen(false)}>Close</Button>
             </DialogFooter>
           </>
         )}
@@ -388,12 +401,13 @@ const RecruiterDashboard = () => {
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the job posting and all related applications.
+            This action cannot be undone. This will permanently delete the job
+            posting and all related applications.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction 
+          <AlertDialogAction
             onClick={handleDeleteJob}
             disabled={isDeleting}
             className="bg-red-600 hover:bg-red-700"
@@ -401,7 +415,7 @@ const RecruiterDashboard = () => {
             {isDeleting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : null}
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? "Deleting..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -523,21 +537,23 @@ const RecruiterDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column */}
           <div className="lg:col-span-2">
-          <DashboardTabs
-            activeJobs={activeJobs}
-            recentApplications={recentApplications}
-            isFetching={isFetching}
-            isOpen={isOpen}
-            setIsOpen={setIsOpen}
-            handleViewJob={handleViewJob}
-            setSelectedJob={setSelectedJob}
-            setIsViewModalOpen={setIsViewModalOpen}
-            setIsEditModalOpen={setIsEditModalOpen}
-            setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-            JobCardSkeleton={JobCardSkeleton}
-            getStatusColor={getStatusColor}
-            getStatusIcon={getStatusIcon}
-          />
+            <DashboardTabs
+              activeJobs={activeJobs}
+              recentApplications={recentApplications}
+              activeAssignments={activeAssignments}
+              // workers={workers}
+              isFetching={isFetching}
+              isOpen={isOpen}
+              setIsOpen={setIsOpen}
+              handleViewJob={handleViewJob}
+              setSelectedJob={setSelectedJob}
+              setIsViewModalOpen={setIsViewModalOpen}
+              setIsEditModalOpen={setIsEditModalOpen}
+              setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+              JobCardSkeleton={JobCardSkeleton}
+              getStatusColor={getStatusColor}
+              getStatusIcon={getStatusIcon}
+            />
           </div>
 
           {/* Right Column */}
@@ -569,7 +585,13 @@ const RecruiterDashboard = () => {
 };
 
 // Sub-components for better organization
-const StatsCard = ({ title, value, icon, description, color }: {
+const StatsCard = ({
+  title,
+  value,
+  icon,
+  description,
+  color,
+}: {
   title: string;
   value: string | number;
   icon: React.ReactNode;
@@ -591,6 +613,8 @@ const StatsCard = ({ title, value, icon, description, color }: {
 const DashboardTabs = ({
   activeJobs,
   recentApplications,
+  activeAssignments,
+  // workers,
   isFetching,
   isOpen,
   setIsOpen,
@@ -605,6 +629,8 @@ const DashboardTabs = ({
 }: {
   activeJobs: JobResponse[];
   recentApplications: Application[];
+  activeAssignments: WorkAssignmentResponse[];
+  // workers: Worker[];
   isFetching: boolean;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
@@ -679,7 +705,9 @@ const DashboardTabs = ({
       <Card>
         <CardHeader>
           <CardTitle>Recent Applications</CardTitle>
-          <CardDescription>Review and manage worker applications</CardDescription>
+          <CardDescription>
+            Review and manage worker applications
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -703,11 +731,22 @@ const DashboardTabs = ({
           <CardDescription>Monitor ongoing work assignments</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {activeAssignments.map((assignment) => (
-              <AssignmentCard key={assignment.id} assignment={assignment} />
-            ))}
-          </div>
+          {isFetching ? (
+            <div className="space-y-4">
+              <Skeleton className="h-[120px] w-full" />
+              <Skeleton className="h-[120px] w-full" />
+            </div>
+          ) : activeAssignments.length > 0 ? (
+            <div className="space-y-4">
+              {activeAssignments.map((assignment) => (
+                <AssignmentCard key={assignment.id} assignment={assignment} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No active work assignments found
+            </div>
+          )}
         </CardContent>
       </Card>
     </TabsContent>
@@ -750,9 +789,7 @@ const JobCard = ({
       <div className="flex items-center gap-3 mb-2">
         <h3 className="font-semibold text-gray-900">{job.title}</h3>
         <Badge variant="secondary">{job.category.name}</Badge>
-        {job.allowMultiple && (
-          <Badge variant="outline">Multiple Workers</Badge>
-        )}
+        {job.allowMultiple && <Badge variant="outline">Multiple Workers</Badge>}
       </div>
       <div className="flex items-center text-sm text-gray-500 space-x-4">
         <div className="flex items-center">
@@ -836,9 +873,11 @@ const ApplicationCard = ({
   <div className="flex items-start justify-between p-4 border rounded-lg">
     <div className="flex items-start space-x-4">
       <Avatar>
-        {/* <AvatarImage
-          src={application.worker.user.avatar || "/placeholder.svg?height=40&width=40"}
-        /> */}
+        <AvatarImage
+          src={
+            application.worker?.avatar || "/placeholder.svg?height=40&width=40"
+          }
+        />
         <AvatarFallback>
           {application.worker.firstName[0]}
           {application.worker.lastName[0]}
@@ -850,10 +889,10 @@ const ApplicationCard = ({
         </h3>
         <p className="text-sm text-gray-600">{application.job.title}</p>
         <p className="text-sm text-gray-500 mt-1">
-          {application.worker.email}
+          {application.job.category.name} | {application.job.location}
         </p>
         <p className="text-sm text-gray-500">
-          {application.worker.firstName}
+          {application.job.description} |{" "}
         </p>
         {application.message && (
           <p className="text-sm text-gray-700 mt-2 italic">
@@ -884,12 +923,16 @@ const ApplicationCard = ({
   </div>
 );
 
-const AssignmentCard = ({ assignment }: { assignment: any }) => (
+const AssignmentCard = ({
+  assignment,
+}: {
+  assignment: WorkAssignmentResponse;
+}) => (
   <div className="flex items-center justify-between p-4 border rounded-lg">
     <div className="flex-1">
       <h3 className="font-semibold text-gray-900">{assignment.job.title}</h3>
       <p className="text-sm text-gray-600">
-        Worker: {assignment.worker.user.firstName} {assignment.worker.user.lastName}
+        Worker: {assignment.worker.firstName} {assignment.worker.lastName}
       </p>
       <div className="flex items-center mt-2 text-sm text-gray-500">
         <Calendar className="h-4 w-4 mr-1" />
@@ -905,6 +948,12 @@ const AssignmentCard = ({ assignment }: { assignment: any }) => (
           minute: "2-digit",
         })}
       </div>
+      <Badge
+        className="mt-2"
+        variant={assignment.status === "ACTIVE" ? "default" : "secondary"}
+      >
+        {assignment.status}
+      </Badge>
       {assignment.notes && (
         <p className="text-sm text-gray-600 mt-1">{assignment.notes}</p>
       )}
@@ -1021,7 +1070,11 @@ const QuickActionsCard = ({
   </Card>
 );
 
-const CompanyProfileCard = ({ recruiterData }: { recruiterData: RecruiterResponse }) => (
+const CompanyProfileCard = ({
+  recruiterData,
+}: {
+  recruiterData: RecruiterResponse;
+}) => (
   <Card>
     <CardHeader>
       <CardTitle>Company Profile</CardTitle>
@@ -1035,9 +1088,7 @@ const CompanyProfileCard = ({ recruiterData }: { recruiterData: RecruiterRespons
           {recruiterData?.type} Recruiter
         </div>
       </div>
-      <div className="text-sm text-gray-600">
-        {recruiterData?.description}
-      </div>
+      <div className="text-sm text-gray-600">{recruiterData?.description}</div>
       <div className="flex items-center text-sm text-gray-500">
         <MapPin className="h-4 w-4 mr-1" />
         {recruiterData?.location}
@@ -1069,23 +1120,17 @@ const RecentActivityCard = () => (
     <CardContent className="space-y-3">
       <div className="text-sm">
         <div className="font-medium">New application received</div>
-        <div className="text-gray-600">
-          Elementary School Teacher position
-        </div>
+        <div className="text-gray-600">Elementary School Teacher position</div>
         <div className="text-xs text-gray-500">2 hours ago</div>
       </div>
       <div className="text-sm">
         <div className="font-medium">Worker assignment completed</div>
-        <div className="text-gray-600">
-          House cleaning by Maria Garcia
-        </div>
+        <div className="text-gray-600">House cleaning by Maria Garcia</div>
         <div className="text-xs text-gray-500">1 day ago</div>
       </div>
       <div className="text-sm">
         <div className="font-medium">Job post published</div>
-        <div className="text-gray-600">
-          Security Guard - Night Shift
-        </div>
+        <div className="text-gray-600">Security Guard - Night Shift</div>
         <div className="text-xs text-gray-500">3 days ago</div>
       </div>
     </CardContent>

@@ -39,6 +39,7 @@ export interface Worker {
   firstName: string;
   lastName: string;
   email: string;
+  avatar?: string;
 }
 
 export interface Application {
