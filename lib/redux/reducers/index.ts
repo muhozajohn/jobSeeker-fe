@@ -5,6 +5,7 @@ import recruitersReducer from "../slices/recruiter/recruiterSlice";
 import jobsReducer from "../slices/jobs/jobsSlice";
 import jobCategoriesReducer from "../slices/JobCategories/JobCategoriesSlice";
 import applicationsReducer from "../slices/applications/applicationSlice";
+import workAssignmentsReducer from "../slices/assignments/assignmentSlice";
 
 const rootReducer = combineReducers({
 
@@ -14,6 +15,7 @@ const rootReducer = combineReducers({
     jobs: jobsReducer,
     jobCategories: jobCategoriesReducer,
     applications: applicationsReducer,
+    workAssignments: workAssignmentsReducer,
 
 });
 
