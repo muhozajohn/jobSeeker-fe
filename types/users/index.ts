@@ -71,6 +71,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone: string;
+  location?: string;
   avatar: string | null;
   role: 'ADMIN' | 'RECRUITER' | 'WORKER';
   isActive: boolean;

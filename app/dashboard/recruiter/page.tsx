@@ -19,6 +19,7 @@ import {
 } from "@/lib/redux/slices/jobs/jobsSlice";
 import { RecruiterResponse } from "@/types/recruiter";
 import { JobResponse, UpdateJobDto } from "@/types/jobs";
+import { selectWorkers , getWorkers } from "@/lib/redux/slices/worker/workerSlice";
 
 // Components
 import PostJob from "@/components/PostJob";
@@ -56,7 +57,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Icons
 import {
-  Bell,
   Briefcase,
   Calendar,
   DollarSign,
@@ -88,35 +88,11 @@ import {
   selectRecruiterAssignments,
 } from "@/lib/redux/slices/assignments/assignmentSlice";
 import { WorkAssignmentResponse } from "@/types/workerAssignment/assignment";
-import { Worker } from "@/types/application/application";
+import { Worker } from "@/types/worker";
+import WorkerCard from "@/components/WorkerCard";
 
-const stats = {
-  activeJobs: 8,
-  totalApplications: 156,
-  pendingApplications: 23,
-  acceptedApplications: 45,
-  activeAssignments: 12,
-  completedAssignments: 89,
-  totalSpent: 45000,
-  averageRating: 4.6,
-};
 
-const workers = [
-  {
-    id: 1,
-    user: {
-      firstName: "John",
-      lastName: "Doe",
-      avatar: null,
-      email: "john.doe@example.com",
-    },
-    skills: ["Teaching", "Classroom Management"],
-    experience: "5+ years",
-    rating: 4.8,
-    jobsCompleted: 12,
-  },
-  // ... other mock data
-];
+
 
 const RecruiterDashboard = () => {
   const router = useRouter();
@@ -134,14 +110,29 @@ const RecruiterDashboard = () => {
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
   const recruiterData = useAppSelector(selectRecruiter) as RecruiterResponse;
-  const recentApplications = useAppSelector(
-    selectApplications
-  ) as Application[];
-  const activeAssignments = useAppSelector(
-    selectRecruiterAssignments
-  ) as WorkAssignmentResponse[];
+  const recentApplications = useAppSelector(selectApplications) as Application[];
+  const activeAssignments = useAppSelector(selectRecruiterAssignments) as WorkAssignmentResponse[];
 
   const activeJobs = useAppSelector(selectMyJobs);
+  const workers = useAppSelector(selectWorkers) ;
+
+
+   // Calculate stats based on available data
+  const stats = {
+    activeJobs: activeJobs.length,
+    totalApplications: recentApplications.length,
+    pendingApplications: recentApplications.filter(app => app.status === "PENDING").length,
+    acceptedApplications: recentApplications.filter(app => app.status === "ACCEPTED").length,
+    activeAssignments: activeAssignments.filter(a => a.status === "ACTIVE").length,
+    completedAssignments: activeAssignments.filter(a => a.status === "COMPLETED").length,
+    totalSpent: activeAssignments.reduce((total, assignment) => {
+      // Calculate total spent based on assignments
+      // This is a placeholder - adjust based on your actual payment data structure
+      return total + (assignment.job.salary || 0);
+    }, 0),
+    // averageRating: recruiterData?.rating || 0, // Assuming recruiter has a rating field
+  };
+
 
   // Initialize user data and client state
   useEffect(() => {
@@ -156,6 +147,7 @@ const RecruiterDashboard = () => {
         setIsFetching(true);
         try {
           // First get recruiter data and wait for it to complete
+          await dispatch(getWorkers()).unwrap();
           const recruiterAction = await dispatch(
             getRecruiterByUserId(Number(userD.id))
           );
@@ -181,7 +173,7 @@ const RecruiterDashboard = () => {
     setIsLoggingOut(true);
     try {
       await dispatch(logoutUser()).unwrap();
-      router.push("/auth/login");
+      router.push("/");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
@@ -451,9 +443,6 @@ const RecruiterDashboard = () => {
               )}
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                <Bell className="h-4 w-4" />
-              </Button>
               <Avatar>
                 <AvatarImage src={recruiterData?.user?.avatar} />
                 <AvatarFallback>
@@ -526,8 +515,8 @@ const RecruiterDashboard = () => {
           />
           <StatsCard
             title="Monthly Spend"
-            value={`$${stats.totalSpent.toLocaleString()}`}
-            icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+            value={`${stats.totalSpent.toLocaleString()} Frw`}
+            icon={`FRW`}
             description="This month"
             color="text-purple-600"
           />
@@ -541,7 +530,7 @@ const RecruiterDashboard = () => {
               activeJobs={activeJobs}
               recentApplications={recentApplications}
               activeAssignments={activeAssignments}
-              // workers={workers}
+              workers={workers}
               isFetching={isFetching}
               isOpen={isOpen}
               setIsOpen={setIsOpen}
@@ -563,6 +552,7 @@ const RecruiterDashboard = () => {
               setIsOpen={setIsOpen}
               showWorkersDialog={showWorkersDialog}
               setShowWorkersDialog={setShowWorkersDialog}
+              workers={workers}
             />
 
             <CompanyProfileCard recruiterData={recruiterData} />
@@ -614,7 +604,7 @@ const DashboardTabs = ({
   activeJobs,
   recentApplications,
   activeAssignments,
-  // workers,
+  workers,
   isFetching,
   isOpen,
   setIsOpen,
@@ -630,7 +620,7 @@ const DashboardTabs = ({
   activeJobs: JobResponse[];
   recentApplications: Application[];
   activeAssignments: WorkAssignmentResponse[];
-  // workers: Worker[];
+  workers: Worker[];
   isFetching: boolean;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
@@ -777,9 +767,9 @@ const JobCard = ({
   setIsEditModalOpen,
   setIsDeleteDialogOpen,
 }: {
-  job: any;
+  job: JobResponse;
   handleViewJob: (jobId: number) => Promise<void>;
-  setSelectedJob: (job: any) => void;
+  setSelectedJob: (job: JobResponse) => void;
   setIsViewModalOpen: (open: boolean) => void;
   setIsEditModalOpen: (open: boolean) => void;
   setIsDeleteDialogOpen: (open: boolean) => void;
@@ -968,56 +958,19 @@ const AssignmentCard = ({
   </div>
 );
 
-const WorkerCard = ({ worker }: { worker: any }) => (
-  <div className="flex items-start p-4 border rounded-lg">
-    <Avatar className="h-10 w-10 mr-4">
-      <AvatarImage src={worker.user.avatar || undefined} />
-      <AvatarFallback>
-        {worker.user.firstName[0]}
-        {worker.user.lastName[0]}
-      </AvatarFallback>
-    </Avatar>
-    <div className="flex-1">
-      <h3 className="font-medium">
-        {worker.user.firstName} {worker.user.lastName}
-      </h3>
-      <p className="text-sm text-gray-600">{worker.user.email}</p>
-      <div className="flex items-center mt-1 text-sm">
-        <span className="text-yellow-600">★ {worker.rating}</span>
-        <span className="mx-2">•</span>
-        <span>{worker.jobsCompleted} jobs completed</span>
-      </div>
-      <div className="mt-2">
-        <p className="text-sm font-medium">Skills:</p>
-        <div className="flex flex-wrap gap-2 mt-1">
-          {worker.skills.map((skill: string, index: number) => (
-            <Badge key={index} variant="outline">
-              {skill}
-            </Badge>
-          ))}
-        </div>
-      </div>
-    </div>
-    <div className="flex flex-col space-y-2">
-      <Button size="sm">View Profile</Button>
-      <Button size="sm" variant="outline">
-        <MessageSquare className="h-4 w-4 mr-2" />
-        Message
-      </Button>
-    </div>
-  </div>
-);
 
 const QuickActionsCard = ({
   isOpen,
   setIsOpen,
   showWorkersDialog,
   setShowWorkersDialog,
+  workers,
 }: {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   showWorkersDialog: boolean;
   setShowWorkersDialog: (open: boolean) => void;
+  workers: Worker[];
 }) => (
   <Card>
     <CardHeader>
@@ -1051,7 +1004,7 @@ const QuickActionsCard = ({
             <DialogTitle>Available Workers</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {workers.map((worker) => (
+            {workers.map((worker:Worker) => (
               <WorkerCard key={worker.id} worker={worker} />
             ))}
           </div>
