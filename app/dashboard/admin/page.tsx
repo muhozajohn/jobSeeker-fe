@@ -32,10 +32,27 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { formatDate } from "@/utils/formartDate"
+import { logoutUser } from "@/lib/redux/slices/auth/auth.slice"
+import router from "next/router"
+import { useAppDispatch } from "@/lib/hooks/hooks"
 
 export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("")
   const [userFilter, setUserFilter] = useState("all")
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const dispatch = useAppDispatch()
+
+    const handleLogout = async () => {
+      setIsLoggingOut(true);
+      try {
+        await dispatch(logoutUser()).unwrap();
+        router.push("/");
+      } catch (error) {
+        console.error("Logout error:", error);
+      } finally {
+        setIsLoggingOut(false);
+      }
+    };
 
   // Mock data based on Prisma schema
   const adminData = {

@@ -12,7 +12,6 @@ import {
   LogIn,
   UserPlus,
   LayoutDashboard,
-  ClipboardList,
   User,
   LogOut,
   Users,
@@ -130,13 +129,13 @@ const UserMenu = ({ userRole, onLogout }: UserMenuProps) => {
   const getSettingsPath = () => {
     switch (userRole) {
       case 'ADMIN':
-        return '/settings';
+        return '/dashboard/admin';
       case 'RECRUITER':
-        return '/settings';
+        return '/dashboard/recruiter';
       case 'WORKER':
-        return '/settings';
+        return '/dashboard/worker';
       default:
-        return '/settings';
+        return '/';
     }
   };
 
@@ -301,14 +300,14 @@ export const Navbar = () => {
               {isAuthenticated ? (
                 <>
                   {/* Notifications */}
-                  <button className="relative p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 transition-colors">
+                  {/* <button className="relative p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 transition-colors">
                     <Bell size={20} />
                     {getNotificationCount() > 0 && (
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                         {getNotificationCount()}
                       </span>
                     )}
-                  </button>
+                  </button> */}
                   
                   {/* User Menu */}
                   <UserMenu userRole={userRole!} onLogout={handleLogout} />
@@ -416,12 +415,12 @@ export const Navbar = () => {
                 >
                   Settings
                 </NavLink>
-                <div className="flex items-center gap-3 px-4 py-2">
+                {/* <div className="flex items-center gap-3 px-4 py-2">
                   <Bell size={18} className="text-gray-400" />
                   <span className="text-sm text-gray-600">
                     {getNotificationCount()} notifications
                   </span>
-                </div>
+                </div> */}
                 <button
                   onClick={() => {
                     closeMobileMenu();

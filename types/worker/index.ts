@@ -10,6 +10,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  avatar?: string;
 }
 
 export interface Worker {
@@ -19,6 +20,8 @@ export interface Worker {
   experience: string;
   skills: string;
   resume: string;
+  rating?: string;
+  jobsCompleted?: string;
   available: boolean;
   createdAt: string; 
   updatedAt: string; 
