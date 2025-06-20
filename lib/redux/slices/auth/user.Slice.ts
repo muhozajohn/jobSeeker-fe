@@ -1,7 +1,7 @@
 
 import authService from "../../../services/auth.service";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { CreateUserDto, GetSpecificUsersParams, GetUsersParams, Role, UpdateUserDto, User, UsersData } from "@/types/users";
+import { CreateUserDto, GetSpecificUsersParams, GetUsersParams, Role, UpdateUserDto, User, UsersData, UsersResponse } from "@/types/users";
 import { formatError } from "@/utils/errors";
 import { AxiosError } from "axios";
 import Toast from "@/components/Toasty";
@@ -61,7 +61,7 @@ export const createUser = createAsyncThunk(
       }
       
       Toast({ message: "User created successfully", type: "success" }); 
-      return response.data; 
+      return response.data.data; 
     } catch (error: unknown) { 
       if (error instanceof AxiosError) { 
         const message = formatError(error.response?.data); 
@@ -79,7 +79,8 @@ export const fetchUsers = createAsyncThunk(
   async (params: GetUsersParams | undefined, { rejectWithValue }) => {
     try {
       const response = await authService.getUsers(params);
-      return response.data;
+      console.log("All Users", response.data.data.users);
+      return response.data as UsersResponse;
     } catch (error: unknown) {
       if (error instanceof AxiosError) {
         const message = formatError(error.response?.data);
@@ -320,12 +321,12 @@ const userSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchUsers.fulfilled, (state, action: PayloadAction<UsersData>) => {
+      .addCase(fetchUsers.fulfilled, (state, action: PayloadAction<UsersResponse>) => {
         state.loading = false;
-        state.users = action.payload.users;
-        state.totalCount = action.payload.totalCount;
-        state.page = action.payload.page;
-        state.pageSize = action.payload.pageSize;
+        state.users = action.payload.data.users;
+        state.totalCount = action.payload.data.totalCount;
+        state.page = action.payload.data.page;
+        state.pageSize = action.payload.data.pageSize;
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
@@ -483,6 +484,8 @@ export const { clearCurrentUser, setUsersPage, setUsersPageSize } = userSlice.ac
 
 // Selectors
 export const selectUsers = (state: RootState) => state.users.users;
+export const selectWorkers = (state: RootState) => state.users.users;
+export const selectRecruiters = (state: RootState) => state.users.users;
 export const selectCurrentUser = (state: RootState) => state.users.currentUser;
 export const selectUsersLoading = (state: RootState) => state.users.loading;
 export const selectUsersError = (state: RootState) => state.users.error;

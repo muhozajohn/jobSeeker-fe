@@ -1,4 +1,4 @@
-import { CreateUserDto, GetSpecificUsersParams, GetUsersParams, LoginDto, Role, SearchUsersParams, UpdateUserDto } from "@/types/users";
+import { CreateUserDto, GetSpecificUsersParams, GetUsersParams, LoginDto, Role, SearchUsersParams, UpdateUserDto, UsersResponse } from "@/types/users";
 import http from "@/utils/axiosInstance";
 import { AxiosResponse } from "axios";
 
@@ -25,7 +25,7 @@ class AuthService {
 
 
     // Get all users with pagination and filtering
-    getUsers(params?: GetUsersParams) {
+    getUsers(params?: GetUsersParams) : Promise<AxiosResponse<UsersResponse>> {
         return http.get(`${USER_URL}`, { params });
     }
 
