@@ -1,16 +1,22 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useCallback, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useEffect, useState, useCallback, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   User,
   MapPin,
@@ -26,69 +32,72 @@ import {
   AlertCircle,
   ExternalLink,
   Upload,
-} from "lucide-react"
-import Link from "next/link"
-import { selectRecruiters, getAllRecruiters , updateRecruiter } from "@/lib/redux/slices/recruiter/recruiterSlice"
-import { useAppDispatch, useAppSelector } from "@/lib/hooks/hooks"
-import { selectMyProfile, GetMe } from "@/lib/redux/slices/auth/auth.slice"
-import { RecruiterResponse } from "@/types/recruiter"
-import { updateUserAvatar } from "@/lib/redux/slices/auth/user.Slice"
+} from "lucide-react";
+import Link from "next/link";
+import {
+  selectRecruiters,
+  getAllRecruiters,
+  updateRecruiter,
+} from "@/lib/redux/slices/recruiter/recruiterSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks/hooks";
+import { selectMyProfile, GetMe } from "@/lib/redux/slices/auth/auth.slice";
+import { RecruiterResponse } from "@/types/recruiter";
+import { updateUserAvatar } from "@/lib/redux/slices/auth/user.Slice";
 
 interface User {
-  id: number
-  email: string
-  firstName: string
-  lastName: string
-  avatar: string | null
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatar: string | null;
 }
 
 interface RecruiterProfile {
-  id: number
-  userId: number
-  companyName: string
-  type: string
-  description: string
-  location: string
-  website: string
-  verified: boolean
-  createdAt: string
-  updatedAt: string
-  user: User
+  id: number;
+  userId: number;
+  companyName: string;
+  type: string;
+  description: string;
+  location: string;
+  website: string;
+  verified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  user: User;
 }
 
 export default function RecruiterProfile() {
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedData, setEditedData] = useState<RecruiterProfile | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState<RecruiterProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const dispatch = useAppDispatch()
-  const recruiters = useAppSelector(selectRecruiters)
-  const myProfile = useAppSelector(selectMyProfile)
-  const profileData = recruiters?.recruiters?.find((recruiter: RecruiterResponse) => recruiter.userId === myProfile?.id)
+  const dispatch = useAppDispatch();
+  const recruiters = useAppSelector(selectRecruiters);
+  const myProfile = useAppSelector(selectMyProfile);
+  const profileData = recruiters?.recruiters?.find(
+    (recruiter: RecruiterResponse) => recruiter.userId === myProfile?.id
+  );
 
   const fetchData = useCallback(async () => {
     try {
-      setIsLoading(true)
-      setError(null)
-      await Promise.all([
-        dispatch(getAllRecruiters()),
-        dispatch(GetMe())
-      ])
+      setIsLoading(true);
+      setError(null);
+      await Promise.all([dispatch(getAllRecruiters()), dispatch(GetMe())]);
     } catch (err) {
-      setError("Failed to load profile data. Please try again.")
-      console.error("Error fetching data:", err)
+      setError("Failed to load profile data. Please try again.");
+      console.error("Error fetching data:", err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [dispatch])
+  }, [dispatch]);
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     if (profileData && !editedData) {
@@ -96,115 +105,139 @@ export default function RecruiterProfile() {
         ...profileData,
         user: {
           ...profileData.user,
-          avatar: profileData.user.avatar === undefined ? null : profileData.user.avatar,
+          avatar:
+            profileData.user.avatar === undefined
+              ? null
+              : profileData.user.avatar,
         },
-      })
+      });
     }
-  }, [profileData, editedData])
+  }, [profileData, editedData]);
 
-  const handleInputChange = useCallback((field: string, value: string) => {
-    if (!editedData) return
-    
-    setEditedData((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        [field]: value,
-      }
-    })
-  }, [editedData])
+  const handleInputChange = useCallback(
+    (field: string, value: string) => {
+      if (!editedData) return;
 
-  const handleUserInputChange = useCallback((field: string, value: string) => {
-    if (!editedData) return
-    
-    setEditedData((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        user: {
-          ...prev.user,
+      setEditedData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
           [field]: value,
-        },
-      }
-    })
-  }, [editedData])
+        };
+      });
+    },
+    [editedData]
+  );
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0 || !editedData) return
-    
-    const file = e.target.files[0]
-    const formData = new FormData()
-    formData.append('avatar', file)
+  const handleUserInputChange = useCallback(
+    (field: string, value: string) => {
+      if (!editedData) return;
 
-    try {
-      setIsUploading(true)
-      setError(null)
-      
-      if (myProfile?.id === undefined) {
-        throw new Error("User ID is missing");
-      }
-      await dispatch(updateUserAvatar({ id: myProfile.id, avatar: file }))
-      
-      // For demo purposes, we'll use a mock URL
-      const avatarUrl = URL.createObjectURL(file)
-      
-      setEditedData(prev => {
-        if (!prev) return prev
+      setEditedData((prev) => {
+        if (!prev) return prev;
         return {
           ...prev,
           user: {
             ...prev.user,
-            avatar: profileData.user.avatar || avatarUrl
-          }
-        }
-      })
+            [field]: value,
+          },
+        };
+      });
+    },
+    [editedData]
+  );
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !editedData) return;
+
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    try {
+      setIsUploading(true);
+      setError(null);
+
+      if (myProfile?.id === undefined) {
+        throw new Error("User ID is missing");
+      }
+      await dispatch(updateUserAvatar({ id: myProfile.id, avatar: file }));
+
+      // For demo purposes, we'll use a mock URL
+      const avatarUrl = URL.createObjectURL(file);
+
+      setEditedData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          user: {
+            ...prev.user,
+            avatar: profileData.user.avatar || avatarUrl,
+          },
+        };
+      });
+      // Refresh data after successful update
+      await fetchData();
     } catch (err) {
-      setError("Failed to upload avatar. Please try again.")
-      console.error("Error uploading avatar:", err)
+      setError("Failed to upload avatar. Please try again.");
+      console.error("Error uploading avatar:", err);
     } finally {
-      setIsUploading(false)
+      setIsUploading(false);
     }
-  }
+  };
 
   const handleSave = async () => {
-    if (!editedData) return
-    
+    if (!editedData) return;
+
     try {
-      setIsSaving(true)
-      setError(null)
-      
+      setIsSaving(true);
+      setError(null);
+
       // Validation
       if (!editedData.companyName.trim()) {
-        throw new Error("Company name is required")
+        throw new Error("Company name is required");
       }
-      if (!editedData.user.firstName.trim() || !editedData.user.lastName.trim()) {
-        throw new Error("First name and last name are required")
+      if (
+        !editedData.user.firstName.trim() ||
+        !editedData.user.lastName.trim()
+      ) {
+        throw new Error("First name and last name are required");
       }
-      if (!editedData.user.email.trim() || !editedData.user.email.includes("@")) {
-        throw new Error("Valid email is required")
+      if (
+        !editedData.user.email.trim() ||
+        !editedData.user.email.includes("@")
+      ) {
+        throw new Error("Valid email is required");
       }
 
       if (profileData?.id === undefined) {
-        throw new Error("Recruiter profile ID is missing")
+        throw new Error("Recruiter profile ID is missing");
       }
       // Convert user.avatar null to undefined for type compatibility
       const safeEditedData = {
         ...editedData,
         user: {
           ...editedData.user,
-          avatar: editedData.user.avatar === null ? undefined : editedData.user.avatar,
+          avatar:
+            editedData.user.avatar === null
+              ? undefined
+              : editedData.user.avatar,
         },
-      }
-      await dispatch(updateRecruiter({ id: profileData.id, data: safeEditedData }))
-      
-      setIsEditing(false)
+      };
+      await dispatch(
+        updateRecruiter({ id: profileData.id, data: safeEditedData })
+      );
+      // Refresh data after successful update
+      await fetchData();
+
+      setIsEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save profile")
-      console.error("Error saving profile:", err)
+      setError(err instanceof Error ? err.message : "Failed to save profile");
+      console.error("Error saving profile:", err);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const handleCancel = () => {
     if (profileData) {
@@ -212,34 +245,37 @@ export default function RecruiterProfile() {
         ...profileData,
         user: {
           ...profileData.user,
-          avatar: profileData.user.avatar === undefined ? null : profileData.user.avatar,
+          avatar:
+            profileData.user.avatar === undefined
+              ? null
+              : profileData.user.avatar,
         },
-      })
+      });
     }
-    setIsEditing(false)
-    setError(null)
-  }
+    setIsEditing(false);
+    setError(null);
+  };
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
     } catch {
-      return 'Unknown'
+      return "Unknown";
     }
-  }
+  };
 
   const getCompanyInitials = (companyName: string) => {
     return companyName
-      .split(' ')
-      .map(word => word[0])
-      .join('')
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
       .toUpperCase()
-      .slice(0, 2)
-  }
+      .slice(0, 2);
+  };
 
   if (isLoading) {
     return (
@@ -257,7 +293,10 @@ export default function RecruiterProfile() {
                   </div>
                   JobConnect
                 </Link>
-                <Link href="/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700 mr-4">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center text-blue-600 hover:text-blue-700 mr-4"
+                >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Dashboard
                 </Link>
@@ -286,7 +325,7 @@ export default function RecruiterProfile() {
           </Card>
         </div>
       </div>
-    )
+    );
   }
 
   if (!profileData || !editedData) {
@@ -305,7 +344,10 @@ export default function RecruiterProfile() {
                   </div>
                   JobConnect
                 </Link>
-                <Link href="/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700 mr-4">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center text-blue-600 hover:text-blue-700 mr-4"
+                >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Dashboard
                 </Link>
@@ -318,12 +360,13 @@ export default function RecruiterProfile() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              No recruiter profile found. Please create a recruiter profile first.
+              No recruiter profile found. Please create a recruiter profile
+              first.
             </AlertDescription>
           </Alert>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -342,7 +385,10 @@ export default function RecruiterProfile() {
                 </div>
                 JobConnect
               </Link>
-              <Link href="/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700 mr-4">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center text-blue-600 hover:text-blue-700 mr-4"
+              >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Link>
@@ -352,8 +398,6 @@ export default function RecruiterProfile() {
       </header>
 
       <div className="max-w-7xl mx-auto py-8">
-      
-
         {/* Profile Header */}
         <Card className="mb-8">
           <CardContent className="p-6">
@@ -362,7 +406,10 @@ export default function RecruiterProfile() {
                 <div className="relative">
                   <Avatar className="h-20 w-20">
                     {editedData.user.avatar ? (
-                      <AvatarImage src={editedData.user.avatar} alt={editedData.companyName} />
+                      <AvatarImage
+                        src={editedData.user.avatar}
+                        alt={editedData.companyName}
+                      />
                     ) : (
                       <AvatarFallback className="text-lg">
                         {getCompanyInitials(editedData.companyName)}
@@ -395,7 +442,9 @@ export default function RecruiterProfile() {
                   )}
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{editedData.companyName}</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {editedData.companyName}
+                  </h1>
                   <div className="flex items-center text-gray-600 mt-1">
                     <MapPin className="h-4 w-4 mr-1" />
                     {editedData.location}
@@ -408,10 +457,14 @@ export default function RecruiterProfile() {
                     {editedData.website && (
                       <div className="flex items-center">
                         <Globe className="h-4 w-4 mr-1" />
-                        <a 
-                          href={editedData.website.startsWith('http') ? editedData.website : `https://${editedData.website}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
+                        <a
+                          href={
+                            editedData.website.startsWith("http")
+                              ? editedData.website
+                              : `https://${editedData.website}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-blue-600 hover:underline flex items-center"
                         >
                           {editedData.website}
@@ -429,7 +482,12 @@ export default function RecruiterProfile() {
                       <Check className="h-4 w-4 mr-2" />
                       {isSaving ? "Saving..." : "Save Changes"}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={handleCancel} disabled={isSaving}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                    >
                       <X className="h-4 w-4 mr-2" />
                       Cancel
                     </Button>
@@ -492,13 +550,17 @@ export default function RecruiterProfile() {
             <Card>
               <CardHeader>
                 <CardTitle>About Us</CardTitle>
-                <CardDescription>Tell candidates about your company</CardDescription>
+                <CardDescription>
+                  Tell candidates about your company
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {isEditing ? (
                   <Textarea
                     value={editedData.description}
-                    onChange={(e) => handleInputChange("description", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("description", e.target.value)
+                    }
                     placeholder="Write a brief description about your company..."
                     className="min-h-[120px]"
                     maxLength={1000}
@@ -506,9 +568,13 @@ export default function RecruiterProfile() {
                 ) : (
                   <div className="text-gray-700">
                     {editedData.description ? (
-                      <p className="whitespace-pre-wrap">{editedData.description}</p>
+                      <p className="whitespace-pre-wrap">
+                        {editedData.description}
+                      </p>
                     ) : (
-                      <p className="text-gray-400 italic">No description provided yet.</p>
+                      <p className="text-gray-400 italic">
+                        No description provided yet.
+                      </p>
                     )}
                   </div>
                 )}
@@ -520,7 +586,9 @@ export default function RecruiterProfile() {
             <Card>
               <CardHeader>
                 <CardTitle>Company Information</CardTitle>
-                <CardDescription>Details about your organization</CardDescription>
+                <CardDescription>
+                  Details about your organization
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isEditing ? (
@@ -530,7 +598,9 @@ export default function RecruiterProfile() {
                       <Input
                         id="companyName"
                         value={editedData.companyName}
-                        onChange={(e) => handleInputChange("companyName", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("companyName", e.target.value)
+                        }
                         required
                       />
                     </div>
@@ -539,7 +609,9 @@ export default function RecruiterProfile() {
                       <Input
                         id="location"
                         value={editedData.location}
-                        onChange={(e) => handleInputChange("location", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("location", e.target.value)
+                        }
                         placeholder="e.g., San Francisco, CA"
                       />
                     </div>
@@ -548,7 +620,9 @@ export default function RecruiterProfile() {
                       <Input
                         id="website"
                         value={editedData.website}
-                        onChange={(e) => handleInputChange("website", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("website", e.target.value)
+                        }
                         placeholder="e.g., https://company.com"
                         type="url"
                       />
@@ -558,7 +632,9 @@ export default function RecruiterProfile() {
                       <Input
                         id="type"
                         value={editedData.type}
-                        onChange={(e) => handleInputChange("type", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("type", e.target.value)
+                        }
                         placeholder="e.g., STARTUP, ENTERPRISE, AGENCY"
                       />
                     </div>
@@ -571,15 +647,21 @@ export default function RecruiterProfile() {
                     </div>
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-3 text-gray-400 flex-shrink-0" />
-                      <span>{editedData.location || "Location not specified"}</span>
+                      <span>
+                        {editedData.location || "Location not specified"}
+                      </span>
                     </div>
                     {editedData.website && (
                       <div className="flex items-center">
                         <Globe className="h-4 w-4 mr-3 text-gray-400 flex-shrink-0" />
-                        <a 
-                          href={editedData.website.startsWith('http') ? editedData.website : `https://${editedData.website}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
+                        <a
+                          href={
+                            editedData.website.startsWith("http")
+                              ? editedData.website
+                              : `https://${editedData.website}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-blue-600 hover:underline flex items-center"
                         >
                           {editedData.website}
@@ -619,7 +701,9 @@ export default function RecruiterProfile() {
                         <Input
                           id="firstName"
                           value={editedData.user.firstName}
-                          onChange={(e) => handleUserInputChange("firstName", e.target.value)}
+                          onChange={(e) =>
+                            handleUserInputChange("firstName", e.target.value)
+                          }
                           required
                         />
                       </div>
@@ -628,7 +712,9 @@ export default function RecruiterProfile() {
                         <Input
                           id="lastName"
                           value={editedData.user.lastName}
-                          onChange={(e) => handleUserInputChange("lastName", e.target.value)}
+                          onChange={(e) =>
+                            handleUserInputChange("lastName", e.target.value)
+                          }
                           required
                         />
                       </div>
@@ -639,7 +725,9 @@ export default function RecruiterProfile() {
                         id="email"
                         type="email"
                         value={editedData.user.email}
-                        onChange={(e) => handleUserInputChange("email", e.target.value)}
+                        onChange={(e) =>
+                          handleUserInputChange("email", e.target.value)
+                        }
                         required
                       />
                     </div>
@@ -658,7 +746,9 @@ export default function RecruiterProfile() {
                     </div>
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-3 text-gray-400 flex-shrink-0" />
-                      <span>Member since {formatDate(editedData.createdAt)}</span>
+                      <span>
+                        Member since {formatDate(editedData.createdAt)}
+                      </span>
                     </div>
                   </>
                 )}
@@ -668,5 +758,5 @@ export default function RecruiterProfile() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }

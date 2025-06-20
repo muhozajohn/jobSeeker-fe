@@ -65,6 +65,33 @@ export interface UserProfileResponse {
 }
 
 
+export type UserRole = 'ADMIN' | 'RECRUITER' | 'WORKER'; 
+
+export interface Recruiter {
+  id: number;
+  userId: number;
+  companyName: string;
+  type: string;
+  description: string;
+  location: string;
+  website: string;
+  verified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Worker {
+  id: number;
+  userId: number;
+  location: string;
+  experience: string;
+  skills: string; 
+  resume: string;
+  available: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -73,11 +100,14 @@ export interface User {
   phone: string;
   location?: string;
   avatar: string | null;
-  role: 'ADMIN' | 'RECRUITER' | 'WORKER';
+  role: UserRole;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  recruiter?: Recruiter;
+  worker?: Worker;
 }
+
 
 export interface UsersData {
   totalCount: number;

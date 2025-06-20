@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { Providers } from "./providers"
 
-import { ToastContainer } from "react-toastify";
+import { ClientToastContainer } from "./ClientToastContainer";
 import "react-toastify/dist/ReactToastify.css";
 
 export const metadata: Metadata = {
@@ -17,11 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <Providers>
           {children}
-          <ToastContainer position="bottom-right" />
+          <ClientToastContainer />
         </Providers>
       </body>
     </html>
