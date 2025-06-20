@@ -18,6 +18,7 @@ export interface RecruiterResponse {
     createdAt: string;
     updatedAt: string;
     user: RecruiterUser;
+    recruiters?:RecruiterResponse[]
 }
 export interface RecruiterApiResponse {
   data: RecruiterResponse;
