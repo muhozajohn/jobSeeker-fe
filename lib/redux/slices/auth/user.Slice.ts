@@ -164,6 +164,37 @@ export const updateUser = createAsyncThunk(
     }
   }
 );
+export const updateUserAvatar = createAsyncThunk(
+  "users/updateAvatar",
+  async ({ id, avatar }: { id: number;  avatar?: File }, { rejectWithValue }) => {
+    try {
+      if (!avatar) {
+        const message = "Avatar file is required";
+        Toast({ message, type: "error" });
+        return rejectWithValue(message);
+      }
+      const response = await authService.updateUserAvatar(id, avatar);
+         // Check if the response indicates failure
+      if (!response.data.success) {
+        const message = formatError(response.data);
+        Toast({ message, type: "error" }); 
+        return rejectWithValue(message);
+      }
+      Toast({ message: "Avatar updated successfully", type: "success" });
+      return response.data;
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        const message = formatError(error.response?.data);
+        Toast({ message, type: "error" });
+        return rejectWithValue(message);
+      }
+      Toast({ type: "error", message: "Unknown error occurred" });
+      return rejectWithValue("Unknown error occurred");
+    }
+  }
+);
+
+
 
 export const updateUserRole = createAsyncThunk(
   "users/updateRole",
@@ -372,6 +403,26 @@ const userSlice = createSlice({
         }
       })
       .addCase(updateUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Update updateUserAvatar
+      .addCase(updateUserAvatar.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUserAvatar.fulfilled, (state, action: PayloadAction<User>) => {
+        state.loading = false;
+        const index = state.users.findIndex(user => user.id === action.payload.id);
+        if (index !== -1) {
+          state.users[index] = action.payload;
+        }
+        // Update current user if it's the same user
+        if (state.currentUser?.id === action.payload.id) {
+          state.currentUser = action.payload;
+        }
+      })
+      .addCase(updateUserAvatar.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })

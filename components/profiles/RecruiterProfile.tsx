@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,6 +8,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   User,
   MapPin,
@@ -20,43 +23,307 @@ import {
   Edit,
   Check,
   X,
+  AlertCircle,
+  ExternalLink,
+  Upload,
 } from "lucide-react"
 import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
+import { selectRecruiters, getAllRecruiters , updateRecruiter } from "@/lib/redux/slices/recruiter/recruiterSlice"
+import { useAppDispatch, useAppSelector } from "@/lib/hooks/hooks"
+import { selectMyProfile, GetMe } from "@/lib/redux/slices/auth/auth.slice"
+import { RecruiterResponse } from "@/types/recruiter"
+import { updateUserAvatar } from "@/lib/redux/slices/auth/user.Slice"
+
+interface User {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  avatar: string | null
+}
+
+interface RecruiterProfile {
+  id: number
+  userId: number
+  companyName: string
+  type: string
+  description: string
+  location: string
+  website: string
+  verified: boolean
+  createdAt: string
+  updatedAt: string
+  user: User
+}
 
 export default function RecruiterProfile() {
   const [isEditing, setIsEditing] = useState(false)
-  const [profileData, setProfileData] = useState({
-    id: 2,
-    userId: 6,
-    companyName: "Tech Corp Inc.",
-    type: "COMPANY",
-    description: "Leading technology company specializing in AI solutions",
-    location: "San Francisco, CA",
-    website: "https://techcorp.com",
-    verified: false,
-    createdAt: "2023-10-01T12:00:00Z",
-    updatedAt: "2023-10-01T12:00:00Z",
-    user: {
-      id: 6,
-      email: "john.doe@techcorp.com",
-      firstName: "John",
-      lastName: "Doe",
-      avatar: null
-    }
-  })
+  const [editedData, setEditedData] = useState<RecruiterProfile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleInputChange = (field: string, value: string) => {
-    setProfileData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
+  const dispatch = useAppDispatch()
+  const recruiters = useAppSelector(selectRecruiters)
+  const myProfile = useAppSelector(selectMyProfile)
+  const profileData = recruiters?.recruiters?.find((recruiter: RecruiterResponse) => recruiter.userId === myProfile?.id)
+
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      await Promise.all([
+        dispatch(getAllRecruiters()),
+        dispatch(GetMe())
+      ])
+    } catch (err) {
+      setError("Failed to load profile data. Please try again.")
+      console.error("Error fetching data:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [dispatch])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  useEffect(() => {
+    if (profileData && !editedData) {
+      setEditedData({
+        ...profileData,
+        user: {
+          ...profileData.user,
+          avatar: profileData.user.avatar === undefined ? null : profileData.user.avatar,
+        },
+      })
+    }
+  }, [profileData, editedData])
+
+  const handleInputChange = useCallback((field: string, value: string) => {
+    if (!editedData) return
+    
+    setEditedData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        [field]: value,
+      }
+    })
+  }, [editedData])
+
+  const handleUserInputChange = useCallback((field: string, value: string) => {
+    if (!editedData) return
+    
+    setEditedData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        user: {
+          ...prev.user,
+          [field]: value,
+        },
+      }
+    })
+  }, [editedData])
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !editedData) return
+    
+    const file = e.target.files[0]
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    try {
+      setIsUploading(true)
+      setError(null)
+      
+      if (myProfile?.id === undefined) {
+        throw new Error("User ID is missing");
+      }
+      await dispatch(updateUserAvatar({ id: myProfile.id, avatar: file }))
+      
+      // For demo purposes, we'll use a mock URL
+      const avatarUrl = URL.createObjectURL(file)
+      
+      setEditedData(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          user: {
+            ...prev.user,
+            avatar: profileData.user.avatar || avatarUrl
+          }
+        }
+      })
+    } catch (err) {
+      setError("Failed to upload avatar. Please try again.")
+      console.error("Error uploading avatar:", err)
+    } finally {
+      setIsUploading(false)
+    }
   }
 
-  const handleSave = () => {
-    // Here you would typically save to your backend
-    console.log("Saving profile data:", profileData)
+  const handleSave = async () => {
+    if (!editedData) return
+    
+    try {
+      setIsSaving(true)
+      setError(null)
+      
+      // Validation
+      if (!editedData.companyName.trim()) {
+        throw new Error("Company name is required")
+      }
+      if (!editedData.user.firstName.trim() || !editedData.user.lastName.trim()) {
+        throw new Error("First name and last name are required")
+      }
+      if (!editedData.user.email.trim() || !editedData.user.email.includes("@")) {
+        throw new Error("Valid email is required")
+      }
+
+      if (profileData?.id === undefined) {
+        throw new Error("Recruiter profile ID is missing")
+      }
+      // Convert user.avatar null to undefined for type compatibility
+      const safeEditedData = {
+        ...editedData,
+        user: {
+          ...editedData.user,
+          avatar: editedData.user.avatar === null ? undefined : editedData.user.avatar,
+        },
+      }
+      await dispatch(updateRecruiter({ id: profileData.id, data: safeEditedData }))
+      
+      setIsEditing(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save profile")
+      console.error("Error saving profile:", err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleCancel = () => {
+    if (profileData) {
+      setEditedData({
+        ...profileData,
+        user: {
+          ...profileData.user,
+          avatar: profileData.user.avatar === undefined ? null : profileData.user.avatar,
+        },
+      })
+    }
     setIsEditing(false)
+    setError(null)
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    } catch {
+      return 'Unknown'
+    }
+  }
+
+  const getCompanyInitials = (companyName: string) => {
+    return companyName
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex justify-between items-center h-16">
+              <div className="w-full flex justify-between items-center">
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 text-xl font-bold text-gray-900 hover:text-orange-400 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-400 rounded-lg flex items-center justify-center">
+                    <Briefcase size={18} className="text-white" />
+                  </div>
+                  JobConnect
+                </Link>
+                <Link href="/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700 mr-4">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Link>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto py-8">
+          <Card className="mb-8">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4 mb-6">
+                <Skeleton className="h-20 w-20 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-48" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-64" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  if (!profileData || !editedData) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex justify-between items-center h-16">
+              <div className="w-full flex justify-between items-center">
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 text-xl font-bold text-gray-900 hover:text-orange-400 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-400 rounded-lg flex items-center justify-center">
+                    <Briefcase size={18} className="text-white" />
+                  </div>
+                  JobConnect
+                </Link>
+                <Link href="/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700 mr-4">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Link>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto py-8">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No recruiter profile found. Please create a recruiter profile first.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -85,48 +352,84 @@ export default function RecruiterProfile() {
       </header>
 
       <div className="max-w-7xl mx-auto py-8">
+      
+
         {/* Profile Header */}
         <Card className="mb-8">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-4">
-                <Avatar className="h-20 w-20">
-                  {profileData.user.avatar ? (
-                    <AvatarImage src={profileData.user.avatar} />
-                  ) : (
-                    <AvatarFallback className="text-lg">
-                      {profileData.companyName[0]}
-                    </AvatarFallback>
+                <div className="relative">
+                  <Avatar className="h-20 w-20">
+                    {editedData.user.avatar ? (
+                      <AvatarImage src={editedData.user.avatar} alt={editedData.companyName} />
+                    ) : (
+                      <AvatarFallback className="text-lg">
+                        {getCompanyInitials(editedData.companyName)}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  {isEditing && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="absolute -bottom-2 -right-2 rounded-full p-2 h-10 w-10  bg-black"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 " />
+                        ) : (
+                          <Upload className="h-4 w-4 text-white" />
+                        )}
+                      </Button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleAvatarUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                    </>
                   )}
-                </Avatar>
+                </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{profileData.companyName}</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">{editedData.companyName}</h1>
                   <div className="flex items-center text-gray-600 mt-1">
                     <MapPin className="h-4 w-4 mr-1" />
-                    {profileData.location}
+                    {editedData.location}
                   </div>
-                  <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                  <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-500">
                     <div className="flex items-center">
                       <Mail className="h-4 w-4 mr-1" />
-                      {profileData.user.email}
+                      {editedData.user.email}
                     </div>
-                    <div className="flex items-center">
-                      <Globe className="h-4 w-4 mr-1" />
-                      <a href={profileData.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {profileData.website}
-                      </a>
-                    </div>
+                    {editedData.website && (
+                      <div className="flex items-center">
+                        <Globe className="h-4 w-4 mr-1" />
+                        <a 
+                          href={editedData.website.startsWith('http') ? editedData.website : `https://${editedData.website}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 hover:underline flex items-center"
+                        >
+                          {editedData.website}
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
               <div className="flex space-x-3">
                 {isEditing ? (
                   <div className="flex space-x-2">
-                    <Button size="sm" onClick={handleSave}>
+                    <Button size="sm" onClick={handleSave} disabled={isSaving}>
                       <Check className="h-4 w-4 mr-2" />
-                      Save Changes
+                      {isSaving ? "Saving..." : "Save Changes"}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+                    <Button size="sm" variant="outline" onClick={handleCancel} disabled={isSaving}>
                       <X className="h-4 w-4 mr-2" />
                       Cancel
                     </Button>
@@ -152,15 +455,26 @@ export default function RecruiterProfile() {
               </div>
               <div className="text-center p-4 bg-purple-50 rounded-lg">
                 <div className="text-2xl font-bold text-purple-600">
-                  {profileData.type}
+                  {editedData.type}
                 </div>
                 <div className="text-sm text-gray-600">Company Type</div>
               </div>
               <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <div className="text-2xl font-bold text-orange-600">
-                  {profileData.verified ? "Verified" : "Not Verified"}
+                <div className="flex items-center justify-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {editedData.verified ? (
+                      <Badge variant="default" className="text-base">
+                        <Shield className="h-4 w-4 mr-1" />
+                        Verified
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-base">
+                        Not Verified
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">Status</div>
+                <div className="text-sm text-gray-600 mt-1">Status</div>
               </div>
             </div>
           </CardContent>
@@ -183,13 +497,20 @@ export default function RecruiterProfile() {
               <CardContent>
                 {isEditing ? (
                   <Textarea
-                    value={profileData.description}
+                    value={editedData.description}
                     onChange={(e) => handleInputChange("description", e.target.value)}
                     placeholder="Write a brief description about your company..."
-                    className="min-h-[100px]"
+                    className="min-h-[120px]"
+                    maxLength={1000}
                   />
                 ) : (
-                  <p className="text-gray-700">{profileData.description}</p>
+                  <div className="text-gray-700">
+                    {editedData.description ? (
+                      <p className="whitespace-pre-wrap">{editedData.description}</p>
+                    ) : (
+                      <p className="text-gray-400 italic">No description provided yet.</p>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -205,59 +526,72 @@ export default function RecruiterProfile() {
                 {isEditing ? (
                   <>
                     <div>
-                      <Label htmlFor="companyName">Company Name</Label>
+                      <Label htmlFor="companyName">Company Name *</Label>
                       <Input
                         id="companyName"
-                        value={profileData.companyName}
+                        value={editedData.companyName}
                         onChange={(e) => handleInputChange("companyName", e.target.value)}
+                        required
                       />
                     </div>
                     <div>
                       <Label htmlFor="location">Location</Label>
                       <Input
                         id="location"
-                        value={profileData.location}
+                        value={editedData.location}
                         onChange={(e) => handleInputChange("location", e.target.value)}
+                        placeholder="e.g., San Francisco, CA"
                       />
                     </div>
                     <div>
                       <Label htmlFor="website">Website</Label>
                       <Input
                         id="website"
-                        value={profileData.website}
+                        value={editedData.website}
                         onChange={(e) => handleInputChange("website", e.target.value)}
+                        placeholder="e.g., https://company.com"
+                        type="url"
                       />
                     </div>
                     <div>
                       <Label htmlFor="type">Company Type</Label>
                       <Input
                         id="type"
-                        value={profileData.type}
+                        value={editedData.type}
                         onChange={(e) => handleInputChange("type", e.target.value)}
+                        placeholder="e.g., STARTUP, ENTERPRISE, AGENCY"
                       />
                     </div>
                   </>
                 ) : (
                   <div className="space-y-4">
                     <div className="flex items-center">
-                      <Briefcase className="h-4 w-4 mr-3 text-gray-400" />
-                      <span>{profileData.companyName}</span>
+                      <Briefcase className="h-4 w-4 mr-3 text-gray-400 flex-shrink-0" />
+                      <span>{editedData.companyName}</span>
                     </div>
                     <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-3 text-gray-400" />
-                      <span>{profileData.location}</span>
+                      <MapPin className="h-4 w-4 mr-3 text-gray-400 flex-shrink-0" />
+                      <span>{editedData.location || "Location not specified"}</span>
                     </div>
-                    <div className="flex items-center">
-                      <Globe className="h-4 w-4 mr-3 text-gray-400" />
-                      <a href={profileData.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {profileData.website}
-                      </a>
-                    </div>
-                    <div className="flex items-center">
-                      <Shield className="h-4 w-4 mr-3 text-gray-400" />
+                    {editedData.website && (
                       <div className="flex items-center">
-                        <span className="mr-2">{profileData.type}</span>
-                        {profileData.verified ? (
+                        <Globe className="h-4 w-4 mr-3 text-gray-400 flex-shrink-0" />
+                        <a 
+                          href={editedData.website.startsWith('http') ? editedData.website : `https://${editedData.website}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 hover:underline flex items-center"
+                        >
+                          {editedData.website}
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                      </div>
+                    )}
+                    <div className="flex items-center">
+                      <Shield className="h-4 w-4 mr-3 text-gray-400 flex-shrink-0" />
+                      <div className="flex items-center">
+                        <span className="mr-2">{editedData.type}</span>
+                        {editedData.verified ? (
                           <Badge variant="default">Verified</Badge>
                         ) : (
                           <Badge variant="outline">Not Verified</Badge>
@@ -279,67 +613,52 @@ export default function RecruiterProfile() {
               <CardContent className="space-y-4">
                 {isEditing ? (
                   <>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="firstName">First Name</Label>
+                        <Label htmlFor="firstName">First Name *</Label>
                         <Input
                           id="firstName"
-                          value={profileData.user.firstName}
-                          onChange={(e) => setProfileData(prev => ({
-                            ...prev,
-                            user: {
-                              ...prev.user,
-                              firstName: e.target.value
-                            }
-                          }))}
+                          value={editedData.user.firstName}
+                          onChange={(e) => handleUserInputChange("firstName", e.target.value)}
+                          required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="lastName">Last Name</Label>
+                        <Label htmlFor="lastName">Last Name *</Label>
                         <Input
                           id="lastName"
-                          value={profileData.user.lastName}
-                          onChange={(e) => setProfileData(prev => ({
-                            ...prev,
-                            user: {
-                              ...prev.user,
-                              lastName: e.target.value
-                            }
-                          }))}
+                          value={editedData.user.lastName}
+                          onChange={(e) => handleUserInputChange("lastName", e.target.value)}
+                          required
                         />
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email">Email *</Label>
                       <Input
                         id="email"
                         type="email"
-                        value={profileData.user.email}
-                        onChange={(e) => setProfileData(prev => ({
-                          ...prev,
-                          user: {
-                            ...prev.user,
-                            email: e.target.value
-                          }
-                        }))}
+                        value={editedData.user.email}
+                        onChange={(e) => handleUserInputChange("email", e.target.value)}
+                        required
                       />
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center">
-                      <User className="h-4 w-4 mr-3 text-gray-400" />
+                      <User className="h-4 w-4 mr-3 text-gray-400 flex-shrink-0" />
                       <span>
-                        {profileData.user.firstName} {profileData.user.lastName}
+                        {editedData.user.firstName} {editedData.user.lastName}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <Mail className="h-4 w-4 mr-3 text-gray-400" />
-                      <span>{profileData.user.email}</span>
+                      <Mail className="h-4 w-4 mr-3 text-gray-400 flex-shrink-0" />
+                      <span>{editedData.user.email}</span>
                     </div>
                     <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-3 text-gray-400" />
-                      <span>Member since {new Date(profileData.createdAt).toLocaleDateString()}</span>
+                      <Calendar className="h-4 w-4 mr-3 text-gray-400 flex-shrink-0" />
+                      <span>Member since {formatDate(editedData.createdAt)}</span>
                     </div>
                   </>
                 )}
