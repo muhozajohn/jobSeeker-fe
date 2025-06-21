@@ -14,10 +14,30 @@ class AuthService {
         return http.post(`${BASE_URL}`, loginData);
     }
     // Create new user
-    createUser(userData: CreateUserDto) {
-        return http.post(`${USER_URL}`, userData);
+    createUser(userData: CreateUserDto, avatar?: File) {
+        const formData = new FormData();
+
+        // Append user data fields
+        Object.keys(userData).forEach(key => {
+            const value = userData[key as keyof UpdateUserDto];
+            if (value !== undefined && value !== null) {
+                formData.append(key, value.toString());
+            }
+        });
+
+        // Append avatar file if provided
+        if (avatar) {
+            formData.append('avatar', avatar);
+        }
+
+        return http.post(`${USER_URL}`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
     }
 
+    
     // get me
     myProfile() {
         return http.get(`${BASE_URL}/profile`,);

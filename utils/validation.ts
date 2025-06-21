@@ -25,11 +25,11 @@ export const userValidation = Yup.object().shape({
     .matches(PHONE_REGEX, "Invalid phone number")
     .nullable(),
   avatar: Yup.string()
-    .matches(URL_REGEX, "Invalid URL format")
+    // .matches(URL_REGEX, "Invalid URL format")
     .nullable(),
   role: Yup.string()
-    .required("Role is required")
-    .oneOf(['ADMIN', 'RECRUITER', 'WORKER'], "Invalid role"),
+    .required("Role is required"),
+    // .oneOf(['ADMIN', 'RECRUITER', 'WORKER'], "Invalid role"),
   isActive: Yup.boolean()
 });
 

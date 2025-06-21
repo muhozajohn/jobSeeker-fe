@@ -6,7 +6,7 @@ export interface CreateUserDto {
     lastName: string;
     phone?: string;
     avatar?: string;
-    role?: Role;
+    role?: string;
     isActive?: boolean;
 }
 
@@ -99,6 +99,7 @@ export interface User {
   lastName: string;
   phone: string;
   location?: string;
+  password?: string;
   avatar: string | null;
   role: UserRole;
   isActive: boolean;
