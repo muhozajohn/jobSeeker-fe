@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { JobCategory, JobCategoryApiResponse, CreateJobCategoryDto, UpdateJobCategoryDto } from "@/types/JobCategories";
+import { JobCategory, CreateJobCategoryDto, UpdateJobCategoryDto } from "@/types/JobCategories";
 import { formatError } from "@/utils/errors";
 import { AxiosError } from "axios";
 import Toast from "@/components/Toasty";
@@ -87,6 +87,11 @@ export const updateJobCategory = createAsyncThunk<
 >("jobCategories/update", async ({ id, data }, { rejectWithValue }) => {
     try {
         const response = await jobCategoryService.updateJobCategory(id, data);
+           if (!response.data.success) {
+                    const message = formatError(response.data);
+                    Toast({ message, type: "error" });
+                    return rejectWithValue(message);
+                }
         Toast({
             message: "Job category updated successfully",
             type: "success",

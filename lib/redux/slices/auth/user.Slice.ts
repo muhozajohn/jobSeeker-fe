@@ -47,31 +47,36 @@ export const fetchCurrentUser = createAsyncThunk(
   }
 );
 
-export const createUser = createAsyncThunk( 
-  "users/create", 
-  async (userData: CreateUserDto, { rejectWithValue }) => { 
-    try { 
-      const response = await authService.createUser(userData); 
-      
+
+
+export const createUser = createAsyncThunk(
+  "users/create",
+  async (
+    { userData, avatar }: { userData: CreateUserDto; avatar?: File },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await authService.createUser(userData, avatar);
+
       // Check if the response indicates failure
       if (!response.data.success) {
         const message = formatError(response.data);
-        Toast({ message, type: "error" }); 
+        Toast({ message, type: "error" });
         return rejectWithValue(message);
       }
-      
-      Toast({ message: "User created successfully", type: "success" }); 
-      return response.data.data; 
-    } catch (error: unknown) { 
-      if (error instanceof AxiosError) { 
-        const message = formatError(error.response?.data); 
-        Toast({ message, type: "error" }); 
-        return rejectWithValue(message); 
-      } 
-      Toast({ type: "error", message: "Unknown error occurred" }); 
-      return rejectWithValue("Unknown error occurred"); 
-    } 
-  } 
+
+      Toast({ message: "User created successfully", type: "success" });
+      return response.data.data;
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        const message = formatError(error.response?.data);
+        Toast({ message, type: "error" });
+        return rejectWithValue(message);
+      }
+      Toast({ type: "error", message: "Unknown error occurred" });
+      return rejectWithValue("Unknown error occurred");
+    }
+  }
 );
 
 export const fetchUsers = createAsyncThunk(
@@ -79,7 +84,6 @@ export const fetchUsers = createAsyncThunk(
   async (params: GetUsersParams | undefined, { rejectWithValue }) => {
     try {
       const response = await authService.getUsers(params);
-      console.log("All Users", response.data.data.users);
       return response.data as UsersResponse;
     } catch (error: unknown) {
       if (error instanceof AxiosError) {

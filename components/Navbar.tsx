@@ -254,11 +254,6 @@ export const Navbar = () => {
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  // Get notification count (you can implement this based on your needs)
-  const getNotificationCount = () => {
-    // This should come from your Redux store or API
-    return 3; // Example count
-  };
 
   return (
     <>
@@ -402,14 +397,14 @@ export const Navbar = () => {
             {isAuthenticated && (
               <div className="pt-4 border-t border-gray-200 space-y-2">
                 <NavLink
-                  href={`/dashboard/${userRole?.toLowerCase()}/profile`}
+                  href={`/profile`}
                   icon={User}
                   onClick={closeMobileMenu}
                 >
                   Profile
                 </NavLink>
                 <NavLink
-                  href={`/dashboard/${userRole?.toLowerCase()}/settings`}
+                  href={`/dashboard/${userRole?.toLowerCase()}`}
                   icon={Settings}
                   onClick={closeMobileMenu}
                 >
