@@ -21,48 +21,78 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, Plus, User as UserIcon, Edit, Upload, X } from "lucide-react";
-import { CreateUserDto,  UserRole } from "@/types/users";
+import { CreateUserDto, UpdateUserDto, UserRole } from "@/types/users";
 import Toast from "./Toasty";
 
 interface UserFormModalProps {
-  user?: CreateUserDto;
-  onSubmit: (values: CreateUserDto) => void;
+  user?: UpdateUserDto & { id?: number };
+  onSubmit: (values: CreateUserDto | UpdateUserDto, avatar?: File) => Promise<void>;
   children?: React.ReactNode;
+  isLoading?: boolean;
+  mode?: "create" | "edit";
 }
 
 export function UserFormModal({
   user,
   onSubmit,
   children,
+  isLoading: externalLoading = false,
+  mode = user ? "edit" : "create",
 }: UserFormModalProps) {
   const [open, setOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [internalLoading, setInternalLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const [avatarRemoved, setAvatarRemoved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isLoading = externalLoading || internalLoading;
 
   const formik = useFormik({
     initialValues: {
       email: user?.email || "",
-      password: user?.password || "",
+      password: "",
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
       phone: user?.phone || "",
       avatar: user?.avatar || "",
-      role: user?.role || "WORKER",
-      isActive: user?.isActive ?? true,
+      role: (user && "role" in user ? (user.role as UserRole) : "WORKER") || "WORKER",
     },
     validationSchema: userSchema,
     enableReinitialize: true,
-    onSubmit: async (values) => {
-      console.log("submitted Value", values);
-      setIsLoading(true);
+    onSubmit: async (values, { resetForm }) => {
+      setInternalLoading(true);
       try {
-  
-        await onSubmit(values);
+        // Prepare the user data
+        const baseUserData = {
+          email: values.email,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          phone: values.phone,
+          role: values.role,
+        };
 
-        // Close modal on success
+        let userData: CreateUserDto | UpdateUserDto;
+
+        if (mode === "edit" && user?.id) {
+          userData = {
+            ...baseUserData,
+            ...(values.password && { password: values.password }),
+            avatar: avatarRemoved && !avatarFile ? "" : values.avatar
+          } as UpdateUserDto;
+        } else {
+          userData = {
+            ...baseUserData,
+            password: values.password, 
+            avatar: values.avatar,
+          } as CreateUserDto;
+        }
+
+        await onSubmit(userData, avatarFile || undefined);
+        
+        // Only close and reset if successful
         setOpen(false);
+        resetFormState();
       } catch (error) {
         console.error("Error submitting form:", error);
         Toast({
@@ -70,47 +100,58 @@ export function UserFormModal({
           type: "error",
         });
       } finally {
-        setIsLoading(false);
+        setInternalLoading(false);
       }
     },
   });
 
+  const resetFormState = () => {
+    formik.resetForm();
+    setAvatarFile(null);
+    setAvatarPreview("");
+    setAvatarRemoved(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   useEffect(() => {
     if (!open) {
-      formik.resetForm();
-      setAvatarFile(null);
-      setAvatarPreview("");
+      resetFormState();
       if (user) {
         formik.setValues({
-          email: user.email,
-          password: user?.password || "",
-          firstName: user.firstName,
-          lastName: user.lastName,
+          email: user.email || "",
+          password: "", 
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
           phone: user.phone || "",
           avatar: user.avatar || "",
-          role: user.role || "",
-          isActive: user.isActive ?? true,
+          role: (user && "role" in user ? (user.role as UserRole) : "WORKER") || "WORKER",
         });
         setAvatarPreview(user.avatar || "");
       }
     }
   }, [open, user]);
 
+  const validateFile = (file: File): boolean => {
+    if (file.size > 5 * 1024 * 1024) {
+      Toast({ message: "File size must be less than 5MB", type: "error" });
+      return false;
+    }
+    return true;
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // Validate file size (e.g., max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        Toast({ message: "File size must be less than 5MB", type: "error" });
-        return;
-      }
-
+    if (file && validateFile(file)) {
       setAvatarFile(file);
+      setAvatarRemoved(false);
 
-      // Create preview URL
       const reader = new FileReader();
       reader.onload = (e) => {
-        setAvatarPreview(e.target?.result as string);
+        const result = e.target?.result as string;
+        setAvatarPreview(result);
+        formik.setFieldValue("avatar", result);
       };
       reader.readAsDataURL(file);
     }
@@ -118,30 +159,37 @@ export function UserFormModal({
 
   const handleRemoveAvatar = () => {
     setAvatarFile(null);
-    setAvatarPreview(user?.avatar || "");
+    setAvatarPreview("");
+    setAvatarRemoved(true);
+    formik.setFieldValue("avatar", "");
+    
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
   const getAvatarFallback = () => {
-    return `${formik.values.firstName?.[0] || ""}${
-      formik.values.lastName?.[0] || ""
-    }`;
+    const firstInitial = formik.values.firstName?.[0]?.toUpperCase() || "";
+    const lastInitial = formik.values.lastName?.[0]?.toUpperCase() || "";
+    return `${firstInitial}${lastInitial}`;
   };
 
   const getAvatarSource = () => {
-    if (avatarPreview) return avatarPreview;
-    if (formik.values.avatar) return formik.values.avatar;
+    if (avatarPreview && !avatarRemoved) return avatarPreview;
+    if (formik.values.avatar && !avatarRemoved) return formik.values.avatar;
     return "";
+  };
+
+  const hasAvatarContent = () => {
+    return avatarFile || (avatarPreview && !avatarRemoved) || (formik.values.avatar && !avatarRemoved);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {children || (
-          <Button size="sm" variant={user ? "outline" : "default"}>
-            {user ? (
+          <Button size="sm" variant={mode === "edit" ? "outline" : "default"}>
+            {mode === "edit" ? (
               <>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
@@ -155,26 +203,28 @@ export function UserFormModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{user ? "Edit User" : "Create New User"}</DialogTitle>
+          <DialogTitle>{mode === "edit" ? "Edit User" : "Create New User"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={formik.handleSubmit} className="space-y-4">
+          {/* Avatar Section */}
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
               <Avatar className="h-24 w-24">
-                <AvatarImage src={getAvatarSource()} />
-                <AvatarFallback>
+                <AvatarImage src={getAvatarSource()} alt="User avatar" />
+                <AvatarFallback className="text-lg">
                   {getAvatarFallback() || <UserIcon className="h-12 w-12" />}
                 </AvatarFallback>
               </Avatar>
-              {(avatarFile || avatarPreview) && (
+              {hasAvatarContent() && (
                 <Button
                   type="button"
                   variant="destructive"
                   size="sm"
                   className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
                   onClick={handleRemoveAvatar}
+                  disabled={isLoading}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -189,6 +239,7 @@ export function UserFormModal({
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
                   className="flex-1"
+                  disabled={isLoading}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   {avatarFile ? "Change Image" : "Upload Image"}
@@ -196,22 +247,24 @@ export function UserFormModal({
                 <input
                   ref={fileInputRef}
                   type="file"
-                //   accept="image/*"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
                   onChange={handleFileSelect}
                   className="hidden"
+                  disabled={isLoading}
                 />
               </div>
               {avatarFile && (
                 <p className="text-sm text-muted-foreground">
-                  Selected: {avatarFile.name}
+                  Selected: {avatarFile.name} ({(avatarFile.size / 1024 / 1024).toFixed(2)}MB)
                 </p>
               )}
             </div>
           </div>
 
+          {/* Name Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="firstName">First Name</Label>
+              <Label htmlFor="firstName">First Name *</Label>
               <Input
                 id="firstName"
                 name="firstName"
@@ -219,6 +272,7 @@ export function UserFormModal({
                 value={formik.values.firstName}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
+                disabled={isLoading}
               />
               {formik.touched.firstName && formik.errors.firstName && (
                 <p className="text-sm text-red-500 mt-1">
@@ -228,7 +282,7 @@ export function UserFormModal({
             </div>
 
             <div>
-              <Label htmlFor="lastName">Last Name</Label>
+              <Label htmlFor="lastName">Last Name *</Label>
               <Input
                 id="lastName"
                 name="lastName"
@@ -236,6 +290,7 @@ export function UserFormModal({
                 value={formik.values.lastName}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
+                disabled={isLoading}
               />
               {formik.touched.lastName && formik.errors.lastName && (
                 <p className="text-sm text-red-500 mt-1">
@@ -245,8 +300,9 @@ export function UserFormModal({
             </div>
           </div>
 
+          {/* Email Field */}
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email *</Label>
             <Input
               id="email"
               name="email"
@@ -255,12 +311,36 @@ export function UserFormModal({
               value={formik.values.email}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
+              disabled={isLoading || mode === "edit"}
             />
             {formik.touched.email && formik.errors.email && (
               <p className="text-sm text-red-500 mt-1">{formik.errors.email}</p>
             )}
           </div>
 
+          {/* Password Field - Only required for create, optional for edit */}
+          <div>
+            <Label htmlFor="password">
+              {mode === "create" ? "Password *" : "New Password"}
+            </Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder={mode === "create" ? "Enter password" : "Leave blank to keep current"}
+              value={formik.values.password}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              disabled={isLoading}
+            />
+            {formik.touched.password && formik.errors.password && (
+              <p className="text-sm text-red-500 mt-1">
+                {formik.errors.password}
+              </p>
+            )}
+          </div>
+
+          {/* Phone Field */}
           <div>
             <Label htmlFor="phone">Phone Number</Label>
             <Input
@@ -270,20 +350,23 @@ export function UserFormModal({
               value={formik.values.phone}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
+              disabled={isLoading}
             />
             {formik.touched.phone && formik.errors.phone && (
               <p className="text-sm text-red-500 mt-1">{formik.errors.phone}</p>
             )}
           </div>
 
+          {/* Role and Status Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">Role *</Label>
               <Select
                 value={formik.values.role}
                 onValueChange={(value) =>
                   formik.setFieldValue("role", value as UserRole)
                 }
+                disabled={isLoading || mode === "edit"}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
@@ -301,7 +384,7 @@ export function UserFormModal({
               )}
             </div>
 
-            <div className="flex items-center justify-between pt-2">
+            {/* <div className="flex items-center justify-between pt-2">
               <Label htmlFor="isActive">Account Status</Label>
               <div className="flex items-center gap-2">
                 <span className="text-sm">
@@ -309,26 +392,29 @@ export function UserFormModal({
                 </span>
                 <Switch
                   id="isActive"
-                  checked={formik.values.isActive}
+                  checked={Boolean(formik.values.isActive)}
                   onCheckedChange={(checked) =>
-                    formik.setFieldValue("isActive", checked)
+                    formik.setFieldValue("isActive", Boolean(checked))
                   }
+                  disabled={isLoading}
                 />
               </div>
-            </div>
+            </div> */}
           </div>
 
+          {/* Form Actions */}
           <div className="flex justify-end gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
+              disabled={isLoading}
             >
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {user ? "Update User" : "Create User"}
+              {mode === "edit" ? "Update User" : "Create User"}
             </Button>
           </div>
         </form>

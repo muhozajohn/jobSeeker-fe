@@ -32,7 +32,6 @@ import {
   selectUserRole,
 } from "@/lib/redux/slices/auth/auth.slice";
 import { createUser } from "@/lib/redux/slices/auth/user.Slice";
-import { Role } from "@/types/users";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -68,7 +67,7 @@ export default function RegisterPage() {
       email: "",
       password: "",
       confirmPassword: "",
-      role: "" as Role,
+      role: "",
       phone: "",
       agreeToTerms: false,
     },
@@ -77,13 +76,13 @@ export default function RegisterPage() {
       setIsLoading(true);
 
       try {
-    const { agreeToTerms, ...payload } = values;
-   const resultAction = await dispatch(createUser(payload));
-      if (createUser.fulfilled.match(resultAction)) {
-        // Registration successful, redirect to login
-        router.push("/auth/login");
-        formik.resetForm();
-      }
+  const { agreeToTerms, ...payload } = values;
+  const resultAction = await dispatch(createUser({ userData: payload }));
+  if (createUser.fulfilled.match(resultAction)) {
+    // Registration successful, redirect to login
+    router.push("/auth/login");
+    formik.resetForm();
+  }
       } catch (error) {
         formik.setErrors({ email: "Registration failed. Please try again." });
       } finally {
@@ -188,7 +187,7 @@ export default function RegisterPage() {
                 <Select
                   name="role"
                   value={formik.values.role}
-                  onValueChange={(value) => formik.setFieldValue('role', value)}
+                  onValueChange={(value) => formik.setFieldValue("role", value)}
                   // onBlur={formik.handleBlur}
                   disabled={isLoading}
                 >

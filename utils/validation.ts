@@ -13,7 +13,7 @@ export const userValidation = Yup.object().shape({
     .required("Email is required")
     .email("Invalid email address"),
   password: Yup.string()
-    .required("Password is required")
+    // .required("Password is required")
     .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`),
   firstName: Yup.string()
     .required("First name is required")
