@@ -56,6 +56,7 @@ import {
   selectRecruiters,
   createUser,
   updateUser,
+  toggleUserStatus,
 } from "@/lib/redux/slices/auth/user.Slice";
 import { GetMe, selectMyProfile } from "@/lib/redux/slices/auth/auth.slice";
 import { getJobs, selectJobs } from "@/lib/redux/slices/jobs/jobsSlice";
@@ -66,7 +67,7 @@ import {
   updateJobCategory,
   deleteJobCategory,
 } from "@/lib/redux/slices/JobCategories/JobCategoriesSlice";
-import { CreateUserDto, User } from "@/types/users";
+import { CreateUserDto, UpdateUserDto, User } from "@/types/users";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCategory } from "@/types/JobCategories";
 import { JobCategoryModal } from "@/components/JobCategoryModal";
@@ -79,61 +80,69 @@ import {
   selectWorkerAssignments,
 } from "@/lib/redux/slices/assignments/assignmentSlice";
 import { UserFormModal } from "@/components/UserFormModal";
-import Toast from "@/components/Toasty";
 
 export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [userFilter, setUserFilter] = useState("WORKER");
   const [isMounted, setIsMounted] = useState(false);
 
-const handleCreateUser = async (values: CreateUserDto, avatarFile?: File) => {
-  try {
-    const result = await dispatch(
-      createUser({ userData: values, avatar: avatarFile })
-    ).unwrap();
-    console.log("User created successfully:", result);
-    await dispatch(fetchUsers({ includeRelations: true }));
-    Toast({ message: "User created successfully", type: "success" });
-  } catch (error) {
-    console.error("Error creating user:", error);
-    Toast({ 
-      message: "Failed to create user. Please try again.", 
-      type: "error" 
-    });
-    throw error; 
-  }
-};
-// Handler for updating an existing user
-const handleUpdateUser = async (
-  values: CreateUserDto | (CreateUserDto & { id: number }),
-  avatarFile?: File
-) => {
-  try {
-    console.log("Updating user with values:", values);
-    console.log("Avatar file:", avatarFile);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
 
-    if ("id" in values) {
-      const { id, ...userData } = values;
-      const result = await dispatch(updateUser({ id, userData, avatar: avatarFile })).unwrap();
-      console.log("User updated successfully:", result);
-      // Refresh the users list
-      await dispatch(fetchUsers({ includeRelations: true }));
-    } else {
-      console.error("Update requires an id property on values.");
-      Toast({
-        message: "Failed to update user. Missing user ID.",
-        type: "error"
-      });
+  const handleCreateUser = async (
+    values: CreateUserDto | UpdateUserDto,
+    avatar?: File
+  ) => {
+    setIsCreatingUser(true);
+    try {
+      if ("password" in values) {
+        const userData = values as CreateUserDto;
+        const resultAction = await dispatch(createUser({ userData, avatar }));
+
+        if (createUser.fulfilled.match(resultAction)) {
+          await dispatch(fetchUsers());
+          return; // Success - modal will close
+        }
+
+        // If we get here, there was an error
+        throw new Error(
+          (resultAction.payload as string) || "Failed to create user"
+        );
+      } else {
+        throw new Error("Invalid data for user creation: missing password.");
+      }
+    } catch (error) {
+      throw error; // Re-throw to keep modal open
+    } finally {
+      setIsCreatingUser(false);
     }
-  } catch (error) {
-    console.error("Error updating user:", error);
-    Toast({
-      message: "Failed to update user. Please try again.",
-      type: "error"
-    });
-    throw error;
-  }
-};
+  };
+
+  const handleUpdateUser = async (
+    userData: UpdateUserDto,
+    avatar?: File,
+    userId?: number
+  ) => {
+    setIsUpdatingUser(true);
+    try {
+      if (typeof userId === "number") {
+        const resultAction = await dispatch(
+          updateUser({ id: userId, userData, avatar })
+        );
+
+        if (updateUser.fulfilled.match(resultAction)) {
+          await dispatch(fetchUsers());
+          return; // Success - modal will close
+        }
+      } else {
+        throw new Error("User ID is required for updating a user.");
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  };
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const dispatch = useAppDispatch();
@@ -453,11 +462,13 @@ const handleUpdateUser = async (
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="jobs">Jobs</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="claims">Claims</TabsTrigger>
+            <TabsTrigger value="requests">All requested Worker</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
@@ -470,7 +481,7 @@ const handleUpdateUser = async (
                       Manage platform users and their accounts
                     </CardDescription>
                   </div>
-             
+
                   <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -492,12 +503,15 @@ const handleUpdateUser = async (
                         <SelectItem value="ADMIN">Admins</SelectItem>
                       </SelectContent>
                     </Select>
-                       <UserFormModal onSubmit={handleCreateUser}>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add User
-                    </Button>
-                  </UserFormModal>
+                    <UserFormModal
+                      onSubmit={handleCreateUser}
+                      isLoading={isCreatingUser}
+                    >
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add User
+                      </Button>
+                    </UserFormModal>
                   </div>
                 </div>
               </CardHeader>
@@ -542,15 +556,36 @@ const handleUpdateUser = async (
                         </div>
                         <div className="flex gap-2">
                           <UserFormModal
-                            // user={user}
-                            onSubmit={handleUpdateUser}
+                            user={{
+                              ...user,
+                              avatar:
+                                user.avatar === null ? undefined : user.avatar,
+                            }}
+                            onSubmit={(userData, avatar) =>
+                              handleUpdateUser(userData, avatar, user.id)
+                            }
+                            isLoading={isUpdatingUser}
                           >
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4 mr-2" />
+                            <Button>
+                              <Plus className="h-4 w-4 mr-2" />
                               Edit
                             </Button>
                           </UserFormModal>
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                await dispatch(toggleUserStatus(user.id));
+                                dispatch(fetchUsers());
+                              } catch (error) {
+                                console.error(
+                                  "Failed to toggle user status",
+                                  error
+                                );
+                              }
+                            }}
+                          >
                             {user.isActive ? (
                               <>
                                 <Ban className="h-4 w-4 mr-2" />
@@ -763,6 +798,271 @@ const handleUpdateUser = async (
                           100
                         }
                       />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="claims" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                  <div>
+                    <CardTitle>Claims Management</CardTitle>
+                    <CardDescription>
+                      Review and resolve user claims and disputes
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Select>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filter by status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Claims</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button variant="outline">
+                      <Clock className="h-4 w-4 mr-2" />
+                      View Pending
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Example claim item - replace with actual data */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-medium">Payment Dispute</h3>
+                        <p className="text-sm text-gray-600">
+                          Job #12345 - Web Development
+                        </p>
+                      </div>
+                      <Badge variant="destructive">Pending</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Claimant</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src="/placeholder-user.jpg" />
+                            <AvatarFallback>JD</AvatarFallback>
+                          </Avatar>
+                          <span>John Doe (Worker)</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Respondent</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src="/placeholder-user.jpg" />
+                            <AvatarFallback>AC</AvatarFallback>
+                          </Avatar>
+                          <span>Acme Corp (Recruiter)</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Amount</p>
+                        <p className="font-medium">$1,250.00</p>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-500">Description</p>
+                      <p className="mt-1">
+                        Worker claims payment was not received for completed
+                        work on the e-commerce website project. Recruiter states
+                        payment was sent but provides no transaction proof.
+                      </p>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4">
+                      <Button variant="outline" size="sm">
+                        Request Evidence
+                      </Button>
+                      <Button variant="destructive" size="sm">
+                        Reject Claim
+                      </Button>
+                      <Button size="sm">Approve Claim</Button>
+                    </div>
+                  </div>
+
+                  {/* Second example claim */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-medium">Work Quality Dispute</h3>
+                        <p className="text-sm text-gray-600">
+                          Job #12346 - Mobile App
+                        </p>
+                      </div>
+                      <Badge variant="secondary">Resolved</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Claimant</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src="/placeholder-user.jpg" />
+                            <AvatarFallback>AC</AvatarFallback>
+                          </Avatar>
+                          <span>Acme Corp (Recruiter)</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Respondent</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src="/placeholder-user.jpg" />
+                            <AvatarFallback>SM</AvatarFallback>
+                          </Avatar>
+                          <span>Sarah Miller (Worker)</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Resolution</p>
+                        <p className="font-medium">Partial Refund (30%)</p>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-500">Resolution Notes</p>
+                      <p className="mt-1">
+                        After reviewing the work and communications, it was
+                        determined that 70% of the work met requirements. Worker
+                        agreed to partial refund.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="requests" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                  <div>
+                    <CardTitle>Worker Applications</CardTitle>
+                    <CardDescription>
+                      Review and approve worker registration requests
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        placeholder="Search applicants..."
+                        className="pl-10 w-full sm:w-64"
+                      />
+                    </div>
+                    <Select>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filter by status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Applications</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Example worker request - replace with actual data */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <Avatar>
+                          <AvatarImage src="/placeholder-user.jpg" />
+                          <AvatarFallback>MJ</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-medium">Michael Johnson</h3>
+                          <p className="text-sm text-gray-600">
+                            mjohnson@example.com
+                          </p>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant="outline">Web Developer</Badge>
+                            <Badge variant="outline">UI/UX Designer</Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button variant="outline" size="sm">
+                          View Profile
+                        </Button>
+                        <Button variant="destructive" size="sm">
+                          Reject
+                        </Button>
+                        <Button size="sm">Approve</Button>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Skills</p>
+                        <p className="mt-1">React, Node.js, Figma, UI Design</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Experience</p>
+                        <p className="mt-1">5 years</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Applied</p>
+                        <p className="mt-1">2 days ago</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Second example request */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <Avatar>
+                          <AvatarImage src="/placeholder-user.jpg" />
+                          <AvatarFallback>AR</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-medium">Amanda Rodriguez</h3>
+                          <p className="text-sm text-gray-600">
+                            arodriguez@example.com
+                          </p>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant="outline">Mobile Developer</Badge>
+                            <Badge variant="outline">Flutter</Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button variant="outline" size="sm">
+                          View Profile
+                        </Button>
+                        <Badge variant="secondary" className="h-10 px-4 py-2">
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Approved
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Skills</p>
+                        <p className="mt-1">Flutter, Dart, Firebase, Android</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Experience</p>
+                        <p className="mt-1">3 years</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Approved</p>
+                        <p className="mt-1">1 week ago</p>
+                      </div>
                     </div>
                   </div>
                 </div>

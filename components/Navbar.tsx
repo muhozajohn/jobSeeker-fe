@@ -48,10 +48,7 @@ const recruiterNavItems = [
 
 const adminNavItems = [
   { name: "Dashboard", path: "/dashboard/admin", icon: LayoutDashboard },
-  { name: "Users", path: "/dashboard/admin/users", icon: Users },
-  { name: "Jobs", path: "/dashboard/admin/jobs", icon: Briefcase },
-  { name: "Companies", path: "/dashboard/admin/companies", icon: Building },
-  { name: "Reports", path: "/dashboard/admin/reports", icon: FileText },
+
 ];
 
 // NavLink Component
