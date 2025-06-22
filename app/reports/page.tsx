@@ -143,7 +143,7 @@ export default function ReportsPage() {
                 Back to Dashboard
               </Link>
               <Link href="/" className="text-2xl font-bold text-blue-600">
-                JobConnect
+                CareBridge
               </Link>
             </div>
           </div>

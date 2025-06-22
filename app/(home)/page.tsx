@@ -57,7 +57,7 @@ export default function HomePage() {
             <span className="text-orange-400"> Dream Jobs</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            JobConnect is the comprehensive recruitment platform that bridges the gap between skilled workers and
+            CareBridge is the comprehensive recruitment platform that bridges the gap between skilled workers and
             recruiters across various industries including education, hospitality, security, and more.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -82,7 +82,7 @@ export default function HomePage() {
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose JobConnect?</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose CareBridge?</h2>
             <p className="text-lg text-gray-600">Powerful features designed for modern recruitment</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -129,7 +129,7 @@ export default function HomePage() {
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">How JobConnect Works</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">How CareBridge Works</h2>
             <p className="text-lg text-gray-600">Simple steps to connect workers and recruiters</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
@@ -167,7 +167,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready to Get Started?</h2>
           <p className="text-lg text-gray-600 mb-8">
-            Join thousands of workers and recruiters who trust JobConnect for their employment needs
+            Join thousands of workers and recruiters who trust CareBridge for their employment needs
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth/register?role=worker">

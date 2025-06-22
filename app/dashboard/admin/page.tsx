@@ -334,7 +334,7 @@ export default function AdminDashboard() {
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-400 rounded-lg flex items-center justify-center">
                   <Briefcase size={18} className="text-white" />
                 </div>
-                JobConnect
+                CareBridge
               </Link>
               <Badge variant="default" className="ml-3 bg-purple-600">
                 <div className="flex items-center space-x-1">
@@ -396,7 +396,7 @@ export default function AdminDashboard() {
             {adminData?.lastName || "Admin"}!
           </h1>
           <p className="text-gray-600">
-            Here's what's happening with JobConnect today.
+            Here's what's happening with CareBridge today.
           </p>
         </div>
 
