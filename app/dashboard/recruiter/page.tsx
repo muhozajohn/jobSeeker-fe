@@ -428,7 +428,7 @@ const RecruiterDashboard = () => {
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-400 rounded-lg flex items-center justify-center">
                   <Briefcase size={18} className="text-white" />
                 </div>
-                JobConnect
+                CareBridge
               </Link>
               <Badge variant="secondary" className="ml-3">
                 <div className="flex items-center space-x-1">

@@ -49,7 +49,7 @@ const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAre
         {/* How It Works Section */}
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            How JobConnect Works
+            How CareBridge Works
           </h2>
           <p className="text-lg text-gray-600">
             Simple steps to connect workers and recruiters
@@ -95,7 +95,7 @@ const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAre
               Need More Information?
             </h3>
             <p className="text-gray-600 mb-6">
-              Have questions about how JobConnect works? We're here to help!
+              Have questions about how CareBridge works? We're here to help!
             </p>
             
             {contactSubmitted && (

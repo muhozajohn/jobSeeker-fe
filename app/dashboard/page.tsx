@@ -150,7 +150,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Link href="/" className="text-2xl font-bold text-blue-600">
-                JobConnect
+                CareBridge
               </Link>
             </div>
             <div className="flex items-center space-x-4">
