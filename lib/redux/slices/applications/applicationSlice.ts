@@ -158,6 +158,37 @@ export const deleteApplication = createAsyncThunk<
         return rejectWithValue("Unknown error occurred");
     }
 });
+export const toggleApplicationActive = createAsyncThunk<
+    { id: number, newStatus: string },
+    { id: number, status: string },
+    { rejectValue: string }
+>("applications/toggleStatus", async ({ id, status }, { rejectWithValue }) => {
+    try {
+        const response = await applicationService.toggleApplicationActive(id, status);
+            if (!response.data.success) {
+            const message = formatError(response.data);
+            Toast({ message, type: "error" });
+            return rejectWithValue(message);
+        }
+        Toast({
+            message: "Application status updated successfully",
+            type: "success",
+            title: "Success"
+        });
+        return { id, newStatus: status }; 
+    } catch (error: unknown) {
+        if (error instanceof AxiosError) {
+            const message = formatError(error.response?.data);
+            Toast({
+                message: message,
+                type: "error",
+            });
+            return rejectWithValue(message);
+        }
+        Toast({ type: "error", message: "Unknown error occurred" });
+        return rejectWithValue("Unknown error occurred");
+    }
+});
 
 const applicationSlice = createSlice({
     name: "applications",
@@ -185,6 +216,31 @@ const applicationSlice = createSlice({
                 state.myApplications.push(action.payload);
             })
             .addCase(createApplication.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload || "Unknown error occurred";
+            })
+            .addCase(toggleApplicationActive.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(toggleApplicationActive.fulfilled, (state, action: PayloadAction<{ id: number; newStatus: string }>) => {
+                state.loading = false;
+                // Update status in applications array
+                const appIndex = state.applications.findIndex(app => app.id === action.payload.id);
+                if (appIndex !== -1) {
+                    state.applications[appIndex].status = action.payload.newStatus as Application['status'];
+                }
+                // Update status in myApplications array
+                const myAppIndex = state.myApplications.findIndex(app => app.id === action.payload.id);
+                if (myAppIndex !== -1) {
+                    state.myApplications[myAppIndex].status = action.payload.newStatus as Application['status'];
+                }
+                // Update currentApplication if it's the one being toggled
+                if (state.currentApplication?.id === action.payload.id) {
+                    state.currentApplication.status = action.payload.newStatus as Application['status'];
+                }
+            })
+            .addCase(toggleApplicationActive.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload || "Unknown error occurred";
             })
@@ -287,10 +343,4 @@ export const selectMyApplications = (state: RootState) => state.applications.myA
 export const selectCurrentApplication = (state: RootState) => state.applications.currentApplication;
 export const selectApplicationsLoading = (state: RootState) => state.applications.loading;
 export const selectApplicationsError = (state: RootState) => state.applications.error;
-
-// Additional selectors
-export const selectApplicationById = (state: RootState, id: number) =>     state.applications.applications.find(app => app.id === id);
-export const selectApplicationsByStatus = (state: RootState, status: Application['status']) =>    state.applications.myApplications.filter(app => app.status === status);
-export const selectPendingApplicationsCount = (state: RootState) =>    state.applications.myApplications.filter(app => app.status === 'PENDING').length;
-
 export default applicationSlice.reducer;

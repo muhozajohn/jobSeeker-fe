@@ -19,7 +19,10 @@ import {
 } from "@/lib/redux/slices/jobs/jobsSlice";
 import { RecruiterResponse } from "@/types/recruiter";
 import { JobResponse, UpdateJobDto } from "@/types/jobs";
-import { selectWorkers , getWorkers } from "@/lib/redux/slices/worker/workerSlice";
+import {
+  selectWorkers,
+  getWorkers,
+} from "@/lib/redux/slices/worker/workerSlice";
 
 // Components
 import PostJob from "@/components/PostJob";
@@ -81,6 +84,7 @@ import { formatSalary } from "@/utils/formaSalary";
 import {
   selectApplications,
   getApplications,
+  toggleApplicationActive,
 } from "@/lib/redux/slices/applications/applicationSlice";
 import { Application } from "@/types/application/application";
 import {
@@ -90,9 +94,6 @@ import {
 import { WorkAssignmentResponse } from "@/types/workerAssignment/assignment";
 import { Worker } from "@/types/worker";
 import WorkerCard from "@/components/WorkerCard";
-
-
-
 
 const RecruiterDashboard = () => {
   const router = useRouter();
@@ -110,21 +111,31 @@ const RecruiterDashboard = () => {
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
   const recruiterData = useAppSelector(selectRecruiter) as RecruiterResponse;
-  const recentApplications = useAppSelector(selectApplications) as Application[];
-  const activeAssignments = useAppSelector(selectRecruiterAssignments) as WorkAssignmentResponse[];
+  const recentApplications = useAppSelector(
+    selectApplications
+  ) as Application[];
+  const activeAssignments = useAppSelector(
+    selectRecruiterAssignments
+  ) as WorkAssignmentResponse[];
 
   const activeJobs = useAppSelector(selectMyJobs);
-  const workers = useAppSelector(selectWorkers) ;
+  const workers = useAppSelector(selectWorkers);
 
-
-   // Calculate stats based on available data
+  // Calculate stats based on available data
   const stats = {
     activeJobs: activeJobs.length,
     totalApplications: recentApplications.length,
-    pendingApplications: recentApplications.filter(app => app.status === "PENDING").length,
-    acceptedApplications: recentApplications.filter(app => app.status === "ACCEPTED").length,
-    activeAssignments: activeAssignments.filter(a => a.status === "ACTIVE").length,
-    completedAssignments: activeAssignments.filter(a => a.status === "COMPLETED").length,
+    pendingApplications: recentApplications.filter(
+      (app) => app.status === "PENDING"
+    ).length,
+    acceptedApplications: recentApplications.filter(
+      (app) => app.status === "ACCEPTED"
+    ).length,
+    activeAssignments: activeAssignments.filter((a) => a.status === "ACTIVE")
+      .length,
+    completedAssignments: activeAssignments.filter(
+      (a) => a.status === "COMPLETED"
+    ).length,
     totalSpent: activeAssignments.reduce((total, assignment) => {
       // Calculate total spent based on assignments
       // This is a placeholder - adjust based on your actual payment data structure
@@ -132,7 +143,6 @@ const RecruiterDashboard = () => {
     }, 0),
     // averageRating: recruiterData?.rating || 0, // Assuming recruiter has a rating field
   };
-
 
   // Initialize user data and client state
   useEffect(() => {
@@ -859,59 +869,101 @@ const ApplicationCard = ({
   application: Application;
   getStatusColor: (status: string) => string;
   getStatusIcon: (status: string) => JSX.Element;
-}) => (
-  <div className="flex items-start justify-between p-4 border rounded-lg">
-    <div className="flex items-start space-x-4">
-      <Avatar>
-        <AvatarImage
-          src={
-            application.worker?.avatar || "/placeholder.svg?height=40&width=40"
-          }
-        />
-        <AvatarFallback>
-          {application.worker.firstName[0]}
-          {application.worker.lastName[0]}
-        </AvatarFallback>
-      </Avatar>
-      <div className="flex-1">
-        <h3 className="font-semibold text-gray-900">
-          {application.worker.firstName} {application.worker.lastName}
-        </h3>
-        <p className="text-sm text-gray-600">{application.job.title}</p>
-        <p className="text-sm text-gray-500 mt-1">
-          {application.job.category.name} | {application.job.location}
-        </p>
-        <p className="text-sm text-gray-500">
-          {application.job.description} |{" "}
-        </p>
-        {application.message && (
-          <p className="text-sm text-gray-700 mt-2 italic">
-            "{application.message}"
+}) => {
+  const dispatch = useAppDispatch();
+
+  return (
+    <div className="flex items-start justify-between p-4 border rounded-lg">
+      <div className="flex items-start space-x-4">
+        <Avatar>
+          <AvatarImage
+            src={
+              application.worker?.avatar || "/placeholder.svg?height=40&width=40"
+            }
+          />
+          <AvatarFallback>
+            {application.worker.firstName[0]}
+            {application.worker.lastName[0]}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <h3 className="font-semibold text-gray-900">
+            {application.worker.firstName} {application.worker.lastName}
+          </h3>
+          <p className="text-sm text-gray-600">{application.job.title}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {application.job.category.name} | {application.job.location}
           </p>
+          <p className="text-sm text-gray-500">
+            {application.job.description} |{" "}
+          </p>
+          {application.message && (
+            <p className="text-sm text-gray-700 mt-2 italic">
+              "{application.message}"
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col items-end space-y-2">
+        <Badge className={getStatusColor(application.status)}>
+          <div className="flex items-center space-x-1">
+            {getStatusIcon(application.status)}
+            <span>{application.status.toLowerCase()}</span>
+          </div>
+        </Badge>
+        <span className="text-xs text-gray-500">
+          {new Date(application.appliedAt).toLocaleDateString()}
+        </span>
+        {application.status === "PENDING" && (
+          <div className="flex space-x-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                dispatch(
+                  toggleApplicationActive({
+                    id: application.id,
+                    status: "REJECTED",
+                  })
+                );
+              }}
+            >
+              Reject
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                dispatch(
+                  toggleApplicationActive({
+                    id: application.id,
+                    status: "ACCEPTED",
+                  })
+                );
+              }}
+            >
+              Accept
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                dispatch(
+                  toggleApplicationActive({
+                    id: application.id,
+                    status: "CANCELLED",
+                  })
+                );
+              }}
+            >
+              Cancelled
+            </Button>
+          </div>
         )}
       </div>
     </div>
-    <div className="flex flex-col items-end space-y-2">
-      <Badge className={getStatusColor(application.status)}>
-        <div className="flex items-center space-x-1">
-          {getStatusIcon(application.status)}
-          <span>{application.status.toLowerCase()}</span>
-        </div>
-      </Badge>
-      <span className="text-xs text-gray-500">
-        {new Date(application.appliedAt).toLocaleDateString()}
-      </span>
-      {application.status === "PENDING" && (
-        <div className="flex space-x-2">
-          <Button size="sm" variant="outline">
-            Reject
-          </Button>
-          <Button size="sm">Accept</Button>
-        </div>
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 const AssignmentCard = ({
   assignment,
@@ -958,7 +1010,6 @@ const AssignmentCard = ({
   </div>
 );
 
-
 const QuickActionsCard = ({
   isOpen,
   setIsOpen,
@@ -1004,7 +1055,7 @@ const QuickActionsCard = ({
             <DialogTitle>Available Workers</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {workers.map((worker:Worker) => (
+            {workers.map((worker: Worker) => (
               <WorkerCard key={worker.id} worker={worker} />
             ))}
           </div>

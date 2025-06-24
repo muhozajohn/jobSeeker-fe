@@ -49,7 +49,7 @@ export default function LoginPage() {
           router.push('/dashboard/recruiter');
           break;
         case 'WORKER':
-          router.push('/dashboard/worker');
+          router.push('/');
           break;
         default:
           router.push('/');

@@ -38,12 +38,12 @@ const publicNavItems = [
 
 const workerNavItems = [
   ...publicNavItems,
-  { name: "Dashboard", path: "/dashboard/worker", icon: LayoutDashboard },
+  // { name: "Dashboard", path: "/dashboard/worker", icon: LayoutDashboard },
 ];
 
 const recruiterNavItems = [
   { name: "Dashboard", path: "/dashboard/recruiter", icon: LayoutDashboard },
-  { name: "Workers", path: "/workers", icon: Users },
+  // { name: "Workers", path: "/workers", icon: Users },
 ];
 
 const adminNavItems = [
@@ -130,7 +130,7 @@ const UserMenu = ({ userRole, onLogout }: UserMenuProps) => {
       case 'RECRUITER':
         return '/dashboard/recruiter';
       case 'WORKER':
-        return '/dashboard/worker';
+        return '/';
       default:
         return '/';
     }
