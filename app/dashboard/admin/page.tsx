@@ -191,6 +191,8 @@ const handleApproveRequest = (id: number) => {
       },
     })
   );
+  dispatch(getConnectionRequests())
+
 };
 
 
@@ -204,6 +206,7 @@ const handleRejectRequest = (id: number) => {
       },
     })
   );
+  dispatch(getConnectionRequests())
 };
 
 
@@ -217,6 +220,8 @@ const handleCancelRequest = (id: number) => {
       },
     })
   );
+  dispatch(getConnectionRequests())
+
 };
 
 
