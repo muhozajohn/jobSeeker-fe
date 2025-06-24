@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   MapPin,
@@ -8,12 +8,19 @@ import {
   CheckCircle,
   XCircle,
   Calendar,
-  User,
 } from "lucide-react";
 import { Worker } from "@/types/worker";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks/hooks";
+import { createConnectionRequest } from "@/lib/redux/slices/notoficationSlice";
+import { useFormik } from "formik";
+import { GetMe, selectMyProfile } from "@/lib/redux/slices/auth/auth.slice";
 
-const WorkerCard = ({ worker }: { worker: Worker }) => {
+interface WorkerCardProps {
+  worker: Worker;
+}
+
+const WorkerCard: React.FC<WorkerCardProps> = ({ worker }) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -22,23 +29,57 @@ const WorkerCard = ({ worker }: { worker: Worker }) => {
     });
   };
 
-  const getInitials = ({ worker }: { worker: Worker }) => {
-    return `${worker.user.firstName?.charAt(0) || ""} ${worker.user.lastName?.charAt(0) || ""
+  const getInitials = (name: { firstName?: string; lastName?: string }) => {
+    return `${name.firstName?.charAt(0) || ""} ${
+      name.lastName?.charAt(0) || ""
     }`.toUpperCase();
   };
 
   const skillsArray = worker?.skills ? worker.skills.split(", ") : [];
+  const dispatch = useAppDispatch();
+  const recruiterProfile = useAppSelector(selectMyProfile);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  useEffect(() => {
+    dispatch(GetMe());
+  }, [dispatch]);
+
+  const formik = useFormik({
+    initialValues: {
+      recruiterId: recruiterProfile?.id || 0,
+      workerId: worker.id,
+      message:
+        "Hello Admin, I would like to express interest in this candidate. Kindly facilitate the next steps of communication. Thank you.",
+    },
+    onSubmit: async (values) => {
+      if (!values.recruiterId) return;
+      
+      setIsLoading(true);
+      try {
+        await dispatch(
+          createConnectionRequest({
+            ...values,
+            recruiterId: Number(values.recruiterId),
+          })
+        );
+      } catch (error) {
+        console.error("Connection request error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+  });
 
   return (
     <Card className="h-full hover:shadow-lg transition-shadow duration-300 border-l-4 border-l-orange-300">
       <CardHeader className="pb-4">
         <div className="flex items-center gap-3 mb-2">
-            <Avatar className=" h-20 w-20 mr-4">
+          <Avatar className="h-20 w-20 mr-4">
             <AvatarImage src={worker.user.avatar || undefined} />
             <AvatarFallback>
-                {getInitials({ worker })}
+              {getInitials(worker.user)}
             </AvatarFallback>
-            </Avatar>
+          </Avatar>
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg font-semibold text-gray-900 truncate">
               {worker.user?.firstName} {worker.user?.lastName}
@@ -67,24 +108,20 @@ const WorkerCard = ({ worker }: { worker: Worker }) => {
               </>
             )}
           </div>
-          {/* <span className="text-xs text-gray-500">ID: {worker.id}</span> */}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Location */}
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
           <span className="text-sm text-gray-700">{worker.location}</span>
         </div>
 
-        {/* Experience */}
         <div className="flex items-start gap-2">
           <Clock className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
           <span className="text-sm text-gray-700">{worker.experience}</span>
         </div>
 
-        {/* Skills */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Code className="w-4 h-4 text-gray-500" />
@@ -102,7 +139,6 @@ const WorkerCard = ({ worker }: { worker: Worker }) => {
           </div>
         </div>
 
-        {/* Resume */}
         {worker.resume && (
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-gray-500" />
@@ -117,7 +153,6 @@ const WorkerCard = ({ worker }: { worker: Worker }) => {
           </div>
         )}
 
-        {/* Dates */}
         <div className="pt-2 border-t border-gray-100 space-y-1">
           <div className="flex items-center justify-between text-xs text-gray-500">
             <div className="flex items-center gap-1">
@@ -132,9 +167,12 @@ const WorkerCard = ({ worker }: { worker: Worker }) => {
           )}
         </div>
 
-        {/* Action Button */}
-        <button className="w-full mt-4 bg-orange-300 hover:bg-orange-400 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200">
-          Contact Agency
+        <button
+          onClick={() => formik.handleSubmit()}
+          disabled={isLoading}
+          className="w-full mt-4 bg-orange-300 hover:bg-orange-400 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? "Processing..." : "Contact Agency"}
         </button>
       </CardContent>
     </Card>

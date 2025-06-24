@@ -62,7 +62,7 @@ export default function JobsPage() {
     allowMultiple: "",
     activeOnly: "true",
   });
-  
+
   const [savedJobs, setSavedJobs] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,12 +73,12 @@ export default function JobsPage() {
 
   // Debounced search to avoid too many API calls
   const [searchDebounced, setSearchDebounced] = useState("");
-  
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchDebounced(filters.search);
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [filters.search]);
 
@@ -88,14 +88,18 @@ export default function JobsPage() {
       try {
         setLoading(true);
         setError(null);
-        
+
         const params = {
           search: searchDebounced || undefined,
           category: filters.category || undefined,
           location: filters.location || undefined,
           activeOnly: filters.activeOnly,
-          salaryMin: filters.salaryMin ? parseInt(filters.salaryMin) : undefined,
-          salaryMax: filters.salaryMax ? parseInt(filters.salaryMax) : undefined,
+          salaryMin: filters.salaryMin
+            ? parseInt(filters.salaryMin)
+            : undefined,
+          salaryMax: filters.salaryMax
+            ? parseInt(filters.salaryMax)
+            : undefined,
           salaryType: filters.salaryType || undefined,
           allowMultiple: filters.allowMultiple || undefined,
         };
@@ -113,11 +117,24 @@ export default function JobsPage() {
     };
 
     fetchData();
-  }, [dispatch, searchDebounced, filters.category, filters.location, filters.activeOnly, filters.salaryMin, filters.salaryMax, filters.salaryType, filters.allowMultiple]);
+  }, [
+    dispatch,
+    searchDebounced,
+    filters.category,
+    filters.location,
+    filters.activeOnly,
+    filters.salaryMin,
+    filters.salaryMax,
+    filters.salaryType,
+    filters.allowMultiple,
+  ]);
 
   // Extract unique locations from jobs
-  const locations = useMemo(() => 
-    Array.from(new Set(jobs.map((job) => job.location))).filter(Boolean).sort(),
+  const locations = useMemo(
+    () =>
+      Array.from(new Set(jobs.map((job) => job.location)))
+        .filter(Boolean)
+        .sort(),
     [jobs]
   );
 
@@ -166,9 +183,7 @@ export default function JobsPage() {
               Oops! Something went wrong
             </h3>
             <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
           </CardContent>
         </Card>
       </div>
@@ -202,7 +217,9 @@ export default function JobsPage() {
                     <Input
                       placeholder="Search jobs or companies..."
                       value={filters.search}
-                      onChange={(e) => handleFilterChange("search", e.target.value)}
+                      onChange={(e) =>
+                        handleFilterChange("search", e.target.value)
+                      }
                       className="pl-10"
                     />
                   </div>
@@ -211,7 +228,9 @@ export default function JobsPage() {
                 {/* Category Filter */}
                 <Select
                   value={filters.category}
-                  onValueChange={(value) => handleFilterChange("category", value)}
+                  onValueChange={(value) =>
+                    handleFilterChange("category", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Category" />
@@ -229,7 +248,9 @@ export default function JobsPage() {
                 {/* Location Filter */}
                 <Select
                   value={filters.location}
-                  onValueChange={(value) => handleFilterChange("location", value)}
+                  onValueChange={(value) =>
+                    handleFilterChange("location", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Location" />
@@ -247,7 +268,9 @@ export default function JobsPage() {
                 {/* Salary Type Filter */}
                 <Select
                   value={filters.salaryType}
-                  onValueChange={(value) => handleFilterChange("salaryType", value as SalaryType)}
+                  onValueChange={(value) =>
+                    handleFilterChange("salaryType", value as SalaryType)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Salary Type" />
@@ -272,7 +295,9 @@ export default function JobsPage() {
                     placeholder="Min Salary"
                     type="number"
                     value={filters.salaryMin}
-                    onChange={(e) => handleFilterChange("salaryMin", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("salaryMin", e.target.value)
+                    }
                     className="pl-10"
                   />
                 </div>
@@ -284,7 +309,9 @@ export default function JobsPage() {
                     placeholder="Max Salary"
                     type="number"
                     value={filters.salaryMax}
-                    onChange={(e) => handleFilterChange("salaryMax", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("salaryMax", e.target.value)
+                    }
                     className="pl-10"
                   />
                 </div>
@@ -292,7 +319,9 @@ export default function JobsPage() {
                 {/* Allow Multiple */}
                 <Select
                   value={filters.allowMultiple}
-                  onValueChange={(value) => handleFilterChange("allowMultiple", value)}
+                  onValueChange={(value) =>
+                    handleFilterChange("allowMultiple", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Allow Multiple?" />
@@ -308,12 +337,14 @@ export default function JobsPage() {
               {/* Active Filters Display */}
               {hasActiveFilters && (
                 <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t">
-                  <span className="text-sm text-gray-600 mr-2">Active filters:</span>
+                  <span className="text-sm text-gray-600 mr-2">
+                    Active filters:
+                  </span>
                   {filters.search && (
                     <Badge variant="secondary" className="gap-1">
                       Search: {filters.search}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
+                      <X
+                        className="h-3 w-3 cursor-pointer"
                         onClick={() => handleFilterChange("search", "")}
                       />
                     </Badge>
@@ -321,8 +352,8 @@ export default function JobsPage() {
                   {filters.category && (
                     <Badge variant="secondary" className="gap-1">
                       Category: {filters.category}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
+                      <X
+                        className="h-3 w-3 cursor-pointer"
                         onClick={() => handleFilterChange("category", "")}
                       />
                     </Badge>
@@ -330,17 +361,18 @@ export default function JobsPage() {
                   {filters.location && (
                     <Badge variant="secondary" className="gap-1">
                       Location: {filters.location}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
+                      <X
+                        className="h-3 w-3 cursor-pointer"
                         onClick={() => handleFilterChange("location", "")}
                       />
                     </Badge>
                   )}
                   {(filters.salaryMin || filters.salaryMax) && (
                     <Badge variant="secondary" className="gap-1">
-                      Salary: {filters.salaryMin && `$${filters.salaryMin}+`} {filters.salaryMax && `- $${filters.salaryMax}`}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
+                      Salary: {filters.salaryMin && `$${filters.salaryMin}+`}{" "}
+                      {filters.salaryMax && `- $${filters.salaryMax}`}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
                         onClick={() => {
                           handleFilterChange("salaryMin", "");
                           handleFilterChange("salaryMax", "");
@@ -365,15 +397,17 @@ export default function JobsPage() {
             ) : (
               <>
                 <h2 className="text-xl font-semibold text-gray-900">
-                  {jobs.length} Job{jobs.length !== 1 ? 's' : ''} Found
+                  {jobs.length} Job{jobs.length !== 1 ? "s" : ""} Found
                 </h2>
                 {filters.search && (
-                  <p className="text-gray-600">Results for "{filters.search}"</p>
+                  <p className="text-gray-600">
+                    Results for "{filters.search}"
+                  </p>
                 )}
               </>
             )}
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
@@ -396,23 +430,30 @@ export default function JobsPage() {
             ))
           ) : jobs.length > 0 ? (
             jobs.map((job) => (
-              <Card key={job.id} className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-transparent">
+              <Card
+                key={job.id}
+                className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-transparent"
+              >
                 <CardContent className="p-6">
                   <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
                     <div className="flex-1 w-full">
                       <div className="flex flex-wrap items-center gap-3 mb-3">
                         <h3 className="text-xl font-semibold text-gray-900 hover:text-orange-400 transition-colors">
-                          <Link href={`/jobs/${job.id}`}>
-                            {job.title}
-                          </Link>
+                          <Link href={`/jobs/${job.id}`}>{job.title}</Link>
                         </h3>
                         {job?.urgent && (
-                          <Badge variant="destructive" className="text-xs animate-pulse">
+                          <Badge
+                            variant="destructive"
+                            className="text-xs animate-pulse"
+                          >
                             🔥 Urgent
                           </Badge>
                         )}
                         {savedJobs.includes(job.id) && (
-                          <Badge variant="outline" className="text-xs text-orange-400">
+                          <Badge
+                            variant="outline"
+                            className="text-xs text-orange-400"
+                          >
                             Saved
                           </Badge>
                         )}
@@ -454,7 +495,10 @@ export default function JobsPage() {
                             </Badge>
                           ))}
                         {job.requirements.split(",").length > 4 && (
-                          <Badge variant="outline" className="text-xs text-gray-400">
+                          <Badge
+                            variant="outline"
+                            className="text-xs text-gray-400"
+                          >
                             +{job.requirements.split(",").length - 4} more
                           </Badge>
                         )}
@@ -489,14 +533,29 @@ export default function JobsPage() {
                       </Button>
 
                       <div className="flex lg:flex-col gap-2 flex-1 lg:flex-initial">
-                        <Link href={`/jobs/${job.id}`} className="flex-1 lg:flex-initial">
-                          <Button variant="outline" size="sm" className="w-full whitespace-nowrap">
+                        <Link
+                          href={`/jobs/${job.id}`}
+                          className="flex-1 lg:flex-initial"
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full whitespace-nowrap"
+                          >
                             View Details
                           </Button>
                         </Link>
-                        <Button size="sm" className="w-full whitespace-nowrap bg-orange-400 hover:bg-orange-500">
-                          Apply Now
-                        </Button>
+                        <Link
+                          href={`/jobs/${job.id}`}
+                          className="flex-1 lg:flex-initial"
+                        >
+                          <Button
+                            size="sm"
+                            className="w-full whitespace-nowrap bg-orange-400 hover:bg-orange-500"
+                          >
+                            Apply Now
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </div>
@@ -514,14 +573,18 @@ export default function JobsPage() {
                   No jobs found
                 </h3>
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  We couldn't find any jobs matching your criteria. Try adjusting your filters or search terms.
+                  We couldn't find any jobs matching your criteria. Try
+                  adjusting your filters or search terms.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button variant="outline" onClick={resetFilters}>
                     <Filter className="h-4 w-4 mr-2" />
                     Clear All Filters
                   </Button>
-                  <Button variant="ghost" onClick={() => handleFilterChange("search", "")}>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleFilterChange("search", "")}
+                  >
                     Clear Search
                   </Button>
                 </div>

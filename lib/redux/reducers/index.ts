@@ -7,6 +7,7 @@ import jobCategoriesReducer from "../slices/JobCategories/JobCategoriesSlice";
 import applicationsReducer from "../slices/applications/applicationSlice";
 import workAssignmentsReducer from "../slices/assignments/assignmentSlice";
 import workerReducer from "../slices/worker/workerSlice";
+import connectionRequestsReducer from "../slices/notoficationSlice";
 
 const rootReducer = combineReducers({
 
@@ -18,6 +19,7 @@ const rootReducer = combineReducers({
     applications: applicationsReducer,
     workAssignments: workAssignmentsReducer,
     worker: workerReducer,
+    connectionRequests: connectionRequestsReducer,
 
 });
 

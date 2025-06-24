@@ -35,9 +35,8 @@ class ApplicationService {
     return http.delete(`${application_URL}/${id}`);
   }
 
-  // Toggle application active status
-  toggleApplicationActive(id: number): Promise<AxiosResponse<ApplicationResponse>> {
-    return http.patch(`${application_URL}/${id}/toggle-active`);
+  toggleApplicationActive(id: number, status: string): Promise<AxiosResponse<ApplicationResponse>> {
+    return http.patch(`${application_URL}/${id}/status?status=${status}`);
   }
 }
 

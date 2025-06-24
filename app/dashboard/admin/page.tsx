@@ -40,7 +40,6 @@ import {
   LogOut,
   LucideTrash,
   LucidePencil,
-  Edit,
 } from "lucide-react";
 import Link from "next/link";
 // import { formatDate } from "@/utils/formartDate";
@@ -67,7 +66,7 @@ import {
   updateJobCategory,
   deleteJobCategory,
 } from "@/lib/redux/slices/JobCategories/JobCategoriesSlice";
-import { CreateUserDto, UpdateUserDto, User } from "@/types/users";
+import { CreateUserDto,UpdateUserDto, User } from "@/types/users";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCategory } from "@/types/JobCategories";
 import { JobCategoryModal } from "@/components/JobCategoryModal";
@@ -80,6 +79,13 @@ import {
   selectWorkerAssignments,
 } from "@/lib/redux/slices/assignments/assignmentSlice";
 import { UserFormModal } from "@/components/UserFormModal";
+import ProfileModal from "@/components/ProfileModal";
+import {
+  getConnectionRequests,
+  selectConnectionRequests,
+  updateConnectionRequestStatus
+} from "@/lib/redux/slices/notoficationSlice";
+import { ConnectionRequest } from "@/types/notification";
 
 export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -157,6 +163,7 @@ export default function AdminDashboard() {
   const recentJobs = useAppSelector(selectJobs);
   const Applications = useAppSelector(selectApplications);
   const assignment = useAppSelector(selectWorkerAssignments);
+  const data = useAppSelector(selectConnectionRequests) || [];
 
   const adminData = recentUsers?.find(
     (user: User) => user.id === myProfile?.id
@@ -174,6 +181,45 @@ export default function AdminDashboard() {
     }
   };
 
+const handleApproveRequest = (id: number) => {
+  dispatch(
+    updateConnectionRequestStatus({
+      id,
+      data: {
+        status: "APPROVED",
+        adminNotes: "This connection is approved. You may proceed to contact the worker.",
+      },
+    })
+  );
+};
+
+
+const handleRejectRequest = (id: number) => {
+  dispatch(
+    updateConnectionRequestStatus({
+      id,
+      data: {
+        status: "REJECTED",
+        adminNotes: "This request has been rejected due to unmet criteria.",
+      },
+    })
+  );
+};
+
+
+const handleCancelRequest = (id: number) => {
+  dispatch(
+    updateConnectionRequestStatus({
+      id,
+      data: {
+        status: "CANCELLED",
+        adminNotes: "The request has been cancelled by the administrator.",
+      },
+    })
+  );
+};
+
+
   // Initialize data -
   const fetchData = useCallback(async () => {
     if (!isMounted) return;
@@ -187,6 +233,7 @@ export default function AdminDashboard() {
       dispatch(fetchUsers(params));
       dispatch(fetchRecruiters());
       dispatch(getJobCategories());
+      dispatch(getConnectionRequests());
       dispatch(fetchWorkers());
       dispatch(GetMe());
       dispatch(getWorkAssignments());
@@ -462,13 +509,13 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="jobs">Jobs</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="claims">Claims</TabsTrigger>
             <TabsTrigger value="requests">All requested Worker</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            {/* <TabsTrigger value="claims">Claims</TabsTrigger> */}
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
@@ -545,8 +592,15 @@ export default function AdminDashboard() {
                               {user.email}
                             </p>
                             <div className="flex gap-2 mt-1">
-                              <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
-                                {user.role}
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full ${getRoleColor(
+                                  user.role
+                                )}`}
+                              >
+                                <span className="flex items-center gap-1">
+                                  {getRoleIcon(user.role)}
+                                  {user.role}
+                                </span>
                               </span>
                               <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
                                 {user.isActive ? "Active" : "Inactive"}
@@ -566,13 +620,17 @@ export default function AdminDashboard() {
                             }
                             isLoading={isUpdatingUser}
                           >
-                            <Button>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Edit
+                            <Button variant="outline" size="sm">
+                              <LucidePencil className="h-3 w-3" />
                             </Button>
                           </UserFormModal>
                           <Button
-                            variant="outline"
+                            variant={user.isActive ? "destructive" : "outline"}
+                            className={`flex items-center gap-1 ${
+                              user.isActive
+                                ? " border-red-400 hover:bg-red-50 text-white"
+                                : "text-green-600 border-green-600 hover:bg-green-50"
+                            }`}
                             size="sm"
                             onClick={async () => {
                               try {
@@ -588,16 +646,18 @@ export default function AdminDashboard() {
                           >
                             {user.isActive ? (
                               <>
-                                <Ban className="h-4 w-4 mr-2" />
-                                Deactivate
+                                <Ban className="h-3 w-3" />
                               </>
                             ) : (
                               <>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Activate
+                                <CheckCircle className="h-3 w-3" />
                               </>
                             )}
                           </Button>
+
+                          {user.role === "WORKER" && (
+                            <ProfileModal userId={user.id} />
+                          )}
                         </div>
                       </div>
                     ))}
@@ -947,124 +1007,120 @@ export default function AdminDashboard() {
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                   <div>
-                    <CardTitle>Worker Applications</CardTitle>
+                    <CardTitle>Connection Requests</CardTitle>
                     <CardDescription>
-                      Review and approve worker registration requests
+                      Review and approve connection requests between recruiters
+                      and workers
                     </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input
-                        placeholder="Search applicants..."
-                        className="pl-10 w-full sm:w-64"
-                      />
-                    </div>
-                    <Select>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filter by status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Applications</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Example worker request - replace with actual data */}
-                  <div className="border rounded-lg p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <Avatar>
-                          <AvatarImage src="/placeholder-user.jpg" />
-                          <AvatarFallback>MJ</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-medium">Michael Johnson</h3>
-                          <p className="text-sm text-gray-600">
-                            mjohnson@example.com
-                          </p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge variant="outline">Web Developer</Badge>
-                            <Badge variant="outline">UI/UX Designer</Badge>
+                  {data.map((request:ConnectionRequest) => (
+                    <div key={request.id} className="border rounded-lg p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <Avatar>
+                            <AvatarImage
+                              src={
+                                request.recruiter.user.avatar ||
+                                "/placeholder-user.jpg"
+                              }
+                            />
+                            <AvatarFallback>
+                              {request.recruiter.user.firstName.charAt(0)}
+                              {request.recruiter.user.lastName.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-medium">
+                              {request.recruiter.user.firstName}{" "}
+                              {request.recruiter.user.lastName}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {request.recruiter.user.email}
+                            </p>
+                            <p className="text-sm mt-1">
+                              <span className="font-medium">Company:</span>{" "}
+                              {request.recruiter.companyName}
+                            </p>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Button variant="outline" size="sm">
-                          View Profile
-                        </Button>
-                        <Button variant="destructive" size="sm">
-                          Reject
-                        </Button>
-                        <Button size="sm">Approve</Button>
-                      </div>
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Skills</p>
-                        <p className="mt-1">React, Node.js, Figma, UI Design</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Experience</p>
-                        <p className="mt-1">5 years</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Applied</p>
-                        <p className="mt-1">2 days ago</p>
-                      </div>
-                    </div>
-                  </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          {request.status === "PENDING" ? (
+                            <>
+  
+                              <Button size="sm" onClick={() => handleApproveRequest(request.id)}>Approve</Button>
+                              <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(request.id)}>Reject</Button>
+                              <Button size="sm" onClick={() => handleCancelRequest(request.id)}>Cancel</Button>
 
-                  {/* Second example request */}
-                  <div className="border rounded-lg p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <Avatar>
-                          <AvatarImage src="/placeholder-user.jpg" />
-                          <AvatarFallback>AR</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-medium">Amanda Rodriguez</h3>
-                          <p className="text-sm text-gray-600">
-                            arodriguez@example.com
-                          </p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge variant="outline">Mobile Developer</Badge>
-                            <Badge variant="outline">Flutter</Badge>
-                          </div>
+                            </>
+                          ) : (
+                            <Badge
+                              variant="secondary"
+                              className="h-10 px-4 py-2"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              {request.status}
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Button variant="outline" size="sm">
-                          View Profile
-                        </Button>
-                        <Badge variant="secondary" className="h-10 px-4 py-2">
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Approved
-                        </Badge>
+
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            Requested Worker
+                          </p>
+                          <p className="mt-1">
+                            {request.worker.user.firstName}{" "}
+                            {request.worker.user.lastName}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {request.worker.user.email}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Worker Skills</p>
+                          <p className="mt-1">{request.worker.skills}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            Request Status
+                          </p>
+                          <p className="mt-1 capitalize">
+                            {request.status.toLowerCase()}
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Requested
+                          </p>
+                          <p className="text-sm">
+                            {new Date(request.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <p className="text-sm text-gray-500">
+                          Recruiter Message
+                        </p>
+                        <p className="mt-1 p-3 bg-gray-50 rounded-md">
+                          {request.message}
+                        </p>
+                        {request.adminNotes && (
+                          <>
+                            <p className="text-sm text-gray-500 mt-2">
+                              Admin Notes
+                            </p>
+                            <p className="mt-1 p-3 bg-blue-50 rounded-md">
+                              {request.adminNotes}
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Skills</p>
-                        <p className="mt-1">Flutter, Dart, Firebase, Android</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Experience</p>
-                        <p className="mt-1">3 years</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Approved</p>
-                        <p className="mt-1">1 week ago</p>
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

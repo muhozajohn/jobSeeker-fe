@@ -4,6 +4,7 @@ export interface CreateOrUpdateWorkerDto {
   skills: string;
   resume: string; 
   available: boolean;
+  userId:number;
 }
 export interface User {
   id: number;
