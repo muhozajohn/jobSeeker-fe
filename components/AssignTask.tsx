@@ -94,7 +94,7 @@ const CustomField: React.FC<CustomFieldProps> = ({
   className = "",
 }) => (
   <div className="space-y-2">
-    <label htmlFor={name} className="block text-sm font-medium text-gray-900 flex items-center gap-2">
+    <label htmlFor={name} className="text-sm font-medium text-gray-900 flex items-center gap-2">
       <Icon className="h-4 w-4" />
       {label}
     </label>
