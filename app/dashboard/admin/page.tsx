@@ -34,7 +34,6 @@ import {
   UserCheck,
   Search,
   Shield,
-  Settings,
   Ban,
   Loader2,
   LogOut,
@@ -66,7 +65,7 @@ import {
   updateJobCategory,
   deleteJobCategory,
 } from "@/lib/redux/slices/JobCategories/JobCategoriesSlice";
-import { CreateUserDto,UpdateUserDto, User } from "@/types/users";
+import { CreateUserDto, UpdateUserDto, User } from "@/types/users";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCategory } from "@/types/JobCategories";
 import { JobCategoryModal } from "@/components/JobCategoryModal";
@@ -83,7 +82,7 @@ import ProfileModal from "@/components/ProfileModal";
 import {
   getConnectionRequests,
   selectConnectionRequests,
-  updateConnectionRequestStatus
+  updateConnectionRequestStatus,
 } from "@/lib/redux/slices/notoficationSlice";
 import { ConnectionRequest } from "@/types/notification";
 
@@ -181,49 +180,45 @@ export default function AdminDashboard() {
     }
   };
 
-const handleApproveRequest = (id: number) => {
-  dispatch(
-    updateConnectionRequestStatus({
-      id,
-      data: {
-        status: "APPROVED",
-        adminNotes: "This connection is approved. You may proceed to contact the worker.",
-      },
-    })
-  );
-  dispatch(getConnectionRequests())
+  const handleApproveRequest = (id: number) => {
+    dispatch(
+      updateConnectionRequestStatus({
+        id,
+        data: {
+          status: "APPROVED",
+          adminNotes:
+            "This connection is approved. You may proceed to contact the worker.",
+        },
+      })
+    );
+    dispatch(getConnectionRequests());
+  };
 
-};
+  const handleRejectRequest = (id: number) => {
+    dispatch(
+      updateConnectionRequestStatus({
+        id,
+        data: {
+          status: "REJECTED",
+          adminNotes: "This request has been rejected due to unmet criteria.",
+        },
+      })
+    );
+    dispatch(getConnectionRequests());
+  };
 
-
-const handleRejectRequest = (id: number) => {
-  dispatch(
-    updateConnectionRequestStatus({
-      id,
-      data: {
-        status: "REJECTED",
-        adminNotes: "This request has been rejected due to unmet criteria.",
-      },
-    })
-  );
-  dispatch(getConnectionRequests())
-};
-
-
-const handleCancelRequest = (id: number) => {
-  dispatch(
-    updateConnectionRequestStatus({
-      id,
-      data: {
-        status: "CANCELLED",
-        adminNotes: "The request has been cancelled by the administrator.",
-      },
-    })
-  );
-  dispatch(getConnectionRequests())
-
-};
-
+  const handleCancelRequest = (id: number) => {
+    dispatch(
+      updateConnectionRequestStatus({
+        id,
+        data: {
+          status: "CANCELLED",
+          adminNotes: "The request has been cancelled by the administrator.",
+        },
+      })
+    );
+    dispatch(getConnectionRequests());
+  };
 
   // Initialize data -
   const fetchData = useCallback(async () => {
@@ -273,7 +268,7 @@ const handleCancelRequest = (id: number) => {
     totalApplications: Applications.length || 0,
     pendingApplications:
       Applications?.filter((r) => r.status === "PENDING").length || 0,
-    activeAssignments: assignment?.filter((r) => r.isActive).length || 0,
+    activeAssignments: assignment?.filter((r) => r.status).length || 0,
     completedAssignments: 10,
     totalRevenue: assignment?.filter((r) => r.job.salary).length || 0,
     monthlyGrowth: 12.5,
@@ -396,9 +391,6 @@ const handleCancelRequest = (id: number) => {
               </Badge>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4" />
-              </Button>
               <Avatar>
                 <AvatarImage
                   src={
@@ -633,7 +625,7 @@ const handleCancelRequest = (id: number) => {
                             variant={user.isActive ? "destructive" : "outline"}
                             className={`flex items-center gap-1 ${
                               user.isActive
-                                ? " border-red-400 hover:bg-red-50 text-white"
+                                ? "border-red-400 bg-red-600 hover:bg-red-700 text-white"
                                 : "text-green-600 border-green-600 hover:bg-green-50"
                             }`}
                             size="sm"
@@ -660,9 +652,20 @@ const handleCancelRequest = (id: number) => {
                             )}
                           </Button>
 
-                          {user.role === "WORKER" && (
-                            <ProfileModal userId={user.id} />
-                          )}
+                          {user.role === "WORKER" &&
+                            (user.worker ? (
+                              <Button
+                                variant={
+                                  user.worker ? "outline" : "outline"
+                                }
+                                className={`flex items-center gap-1 text-green-600 border-green-600 hover:bg-green-50 `}
+                                size="sm"
+                              >
+                                Profile <CheckCircle className="h-3 w-3" />
+                              </Button>
+                            ) : (
+                              <ProfileModal userId={user.id} />
+                            ))}
                         </div>
                       </div>
                     ))}
@@ -1022,7 +1025,7 @@ const handleCancelRequest = (id: number) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {data.map((request:ConnectionRequest) => (
+                  {data.map((request: ConnectionRequest) => (
                     <div key={request.id} className="border rounded-lg p-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
@@ -1055,11 +1058,25 @@ const handleCancelRequest = (id: number) => {
                         <div className="flex flex-col sm:flex-row gap-2">
                           {request.status === "PENDING" ? (
                             <>
-  
-                              <Button size="sm" onClick={() => handleApproveRequest(request.id)}>Approve</Button>
-                              <Button size="sm" variant="destructive" onClick={() => handleRejectRequest(request.id)}>Reject</Button>
-                              <Button size="sm" onClick={() => handleCancelRequest(request.id)}>Cancel</Button>
-
+                              <Button
+                                size="sm"
+                                onClick={() => handleApproveRequest(request.id)}
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleRejectRequest(request.id)}
+                              >
+                                Reject
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleCancelRequest(request.id)}
+                              >
+                                Cancel
+                              </Button>
                             </>
                           ) : (
                             <Badge

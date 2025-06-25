@@ -41,7 +41,6 @@ export interface Job {
 }
 
 export interface WorkAssignmentResponse {
-  [x: string]: number;
   id: number;
   startTime: string;
   endTime: string;

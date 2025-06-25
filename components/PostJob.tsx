@@ -31,6 +31,9 @@ import { selectJobCategories, getJobCategories } from "@/lib/redux/slices/JobCat
 import { useAppDispatch, useAppSelector } from "@/lib/hooks/hooks";
 import { createJob } from "@/lib/redux/slices/jobs/jobsSlice";
 import { CreateJobDto } from "@/types/jobs";
+import { selectRecruiters , getAllRecruiters } from "@/lib/redux/slices/recruiter/recruiterSlice";
+import { GetMe , selectMyProfile } from "@/lib/redux/slices/auth/auth.slice";
+import { RecruiterResponse } from "@/types/recruiter";
 
 interface PostJobProps {
   closeModal?: () => void;
@@ -53,9 +56,16 @@ export default function PostJob({
   const dispatch = useAppDispatch();
   const jobCategories = useAppSelector(selectJobCategories);
 
+  const recruiters = useAppSelector(selectRecruiters);
+  const myProfile = useAppSelector(selectMyProfile);
+  const profileData = recruiters?.recruiters?.find((recruiter: RecruiterResponse) => recruiter.userId === myProfile?.id);
+  const recruiterId = profileData?.id ? Number(profileData.id) : undefined;
+
   useEffect(() => {
     try {
       dispatch(getJobCategories());
+      dispatch(getAllRecruiters());
+      dispatch(GetMe());
     } catch (error) {
       console.log(error);
     }
@@ -83,11 +93,13 @@ const formik = useFormik({
   initialValues: isEditMode && initialValues ? 
     {
       ...initialValues,
-      categoryId: initialValues.categoryId.toString(), // Ensure categoryId is a string
-      salary: initialValues.salary.toString(), // Ensure salary is a string
+      categoryId: initialValues.categoryId.toString(), // Keep as string for form
+      salary: initialValues.salary.toString(),
+      recruiterId: Number(initialValues.recruiterId), // Ensure it's a number
     } : {
       title: "",
       categoryId: "",
+      recruiterId: recruiterId || 0, // Default to 0 if undefined, will be set when recruiterId is available
       description: "",
       requirements: "",
       location: "",
@@ -106,6 +118,7 @@ const formik = useFormik({
           skills: skills, 
           categoryId: Number(values.categoryId),
           salary: Number(values.salary),
+          recruiterId: Number(values.recruiterId), // Ensure recruiterId is sent as number
         };
         
         if (isEditMode && onSubmit) {
@@ -126,6 +139,13 @@ const formik = useFormik({
       }
     },
   });
+
+  // Update recruiterId when it becomes available
+  useEffect(() => {
+    if (recruiterId && !isEditMode) {
+      formik.setFieldValue("recruiterId", recruiterId);
+    }
+  }, [recruiterId, isEditMode]);
 
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -150,16 +170,40 @@ const formik = useFormik({
     return formatMap[type as keyof typeof formatMap] || `$${amount}`;
   };
 
+  // Show loading or error state if recruiterId is not available
+  if (!recruiterId && !isEditMode) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Loading Recruiter Profile
+              </h3>
+              <p className="text-gray-600">
+                Please wait while we fetch your recruiter information...
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Post a New Job
+            {isEditMode ? "Edit Job" : "Post a New Job"}
           </h1>
           <p className="text-gray-600">
-            Create a detailed job posting to attract the right candidates
+            {isEditMode 
+              ? "Update your job posting details" 
+              : "Create a detailed job posting to attract the right candidates"
+            }
           </p>
         </div>
 
@@ -558,15 +602,10 @@ const formik = useFormik({
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      {
-                        isEditMode ? "Updating..." : "Posting..."
-                      }
+                      {isEditMode ? "Updating..." : "Posting..."}
                     </span>
-              
-                  ) :  isEditMode ? "Update Job" :  "Post Job"}
+                  ) : isEditMode ? "Update Job" : "Post Job"}
                 </Button>
-
-                
               </div>
             </div>
           </form>

@@ -7,6 +7,7 @@ export interface RecruiterUser {
 }
 
 export interface RecruiterResponse {
+    filter(arg0: (rid: any) => boolean): unknown;
     id: number;
     userId: number;
     companyName: string;

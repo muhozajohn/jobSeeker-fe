@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, JSX } from "react";
+import { useState, useEffect, JSX, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks/hooks";
@@ -70,7 +70,6 @@ import {
   AlertCircle,
   Plus,
   Eye,
-  MessageSquare,
   TrendingUp,
   Building,
   UserCheck,
@@ -94,6 +93,14 @@ import {
 import { WorkAssignmentResponse } from "@/types/workerAssignment/assignment";
 import { Worker } from "@/types/worker";
 import WorkerCard from "@/components/WorkerCard";
+import {
+  selectConnectionRequests,
+  getConnectionRequests,
+} from "@/lib/redux/slices/notoficationSlice";
+import { ConnectionRequest } from "@/types/notification";
+import { GetMe , selectMyProfile } from "@/lib/redux/slices/auth/auth.slice";
+import AssignTaskForm from "@/components/AssignTask";
+import router from "next/router";
 
 const RecruiterDashboard = () => {
   const router = useRouter();
@@ -103,14 +110,21 @@ const RecruiterDashboard = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [showWorkersDialog, setShowWorkersDialog] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const myProfile = useAppSelector(selectMyProfile)
+  const conections = useAppSelector(selectConnectionRequests) || [];
+  const data = conections.find((conn)=> conn.recruiter.userId === myProfile?.id)
 
-  const recruiterData = useAppSelector(selectRecruiter) as RecruiterResponse;
+  // const recruiterData = useAppSelector(selectRecruiter) as RecruiterResponse;
+   const rawRecruiterData = useAppSelector(selectRecruiter);
+  
+  const recruiterData = useMemo(() => {
+    return rawRecruiterData as RecruiterResponse;
+  }, [rawRecruiterData]);
   const recentApplications = useAppSelector(
     selectApplications
   ) as Application[];
@@ -162,9 +176,11 @@ const RecruiterDashboard = () => {
             getRecruiterByUserId(Number(userD.id))
           );
           const recruiter = recruiterAction.payload as RecruiterResponse;
-
+          
           // Then get other data that depends on recruiter
           await Promise.all([
+            dispatch(getConnectionRequests()).unwrap(),
+            dispatch(GetMe()).unwrap(),
             dispatch(getMyJobs()),
             dispatch(getApplications()),
             dispatch(getWorkAssignmentsByRecruiter(Number(recruiter.id))),
@@ -552,18 +568,19 @@ const RecruiterDashboard = () => {
               JobCardSkeleton={JobCardSkeleton}
               getStatusColor={getStatusColor}
               getStatusIcon={getStatusIcon}
+              connectionRequests={data ? [data] : []}
             />
           </div>
 
           {/* Right Column */}
           <div className="space-y-6">
-            <QuickActionsCard
+            {/* <QuickActionsCard
               isOpen={isOpen}
               setIsOpen={setIsOpen}
               showWorkersDialog={showWorkersDialog}
               setShowWorkersDialog={setShowWorkersDialog}
               workers={workers}
-            />
+            /> */}
 
             <CompanyProfileCard recruiterData={recruiterData} />
 
@@ -609,7 +626,6 @@ const StatsCard = ({
     </CardContent>
   </Card>
 );
-
 const DashboardTabs = ({
   activeJobs,
   recentApplications,
@@ -626,6 +642,7 @@ const DashboardTabs = ({
   JobCardSkeleton,
   getStatusColor,
   getStatusIcon,
+  connectionRequests,
 }: {
   activeJobs: JobResponse[];
   recentApplications: Application[];
@@ -642,13 +659,15 @@ const DashboardTabs = ({
   JobCardSkeleton: () => JSX.Element;
   getStatusColor: (status: string) => string;
   getStatusIcon: (status: string) => JSX.Element;
+  connectionRequests: ConnectionRequest[];
 }) => (
   <Tabs defaultValue="jobs" className="w-full">
-    <TabsList className="grid w-full grid-cols-4">
+    <TabsList className="grid w-full grid-cols-5">
       <TabsTrigger value="jobs">Job Posts</TabsTrigger>
       <TabsTrigger value="applications">Applications</TabsTrigger>
       <TabsTrigger value="assignments">Work Assignments</TabsTrigger>
-      <TabsTrigger value="workers">Workers</TabsTrigger>
+      <TabsTrigger value="workers">All Workers</TabsTrigger>
+      <TabsTrigger value="myworkers">My Workers</TabsTrigger>
     </TabsList>
 
     <TabsContent value="jobs" className="space-y-4">
@@ -766,6 +785,100 @@ const DashboardTabs = ({
         </CardContent>
       </Card>
     </TabsContent>
+    <TabsContent value="myworkers" className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Active Workers</CardTitle>
+          <CardDescription>
+            Manage your worker and assign task to each
+          </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {connectionRequests.map((request: ConnectionRequest) => (
+              <div key={request.id} className="border rounded-lg p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <Avatar>
+                      <AvatarImage
+                        src={
+                          request.recruiter.user.avatar ||
+                          "/placeholder-user.jpg"
+                        }
+                      />
+                      <AvatarFallback>
+                        {request.recruiter.user.firstName.charAt(0)}
+                        {request.recruiter.user.lastName.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="font-medium">
+                        {request.recruiter.user.firstName}{" "}
+                        {request.recruiter.user.lastName}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {request.recruiter.user.email}
+                      </p>
+                      <p className="text-sm mt-1">
+                        <span className="font-medium">Company:</span>{" "}
+                        {request.recruiter.companyName}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Badge variant="secondary" className="h-10 px-4 py-2">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      {request.status}
+                    </Badge>
+
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Requested Worker</p>
+                    <p className="mt-1">
+                      {request.worker.user.firstName}{" "}
+                      {request.worker.user.lastName}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {request.worker.user.email}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Worker Skills</p>
+                    <p className="mt-1">{request.worker.skills}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Request Status</p>
+                    <p className="mt-1 capitalize">
+                      {request.status.toLowerCase()}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">Requested</p>
+                    <p className="text-sm">
+                      {new Date(request.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <p className="text-sm text-gray-500">Recruiter Message</p>
+                  <p className="mt-1 p-3 bg-gray-50 rounded-md">
+                    {request.message}
+                  </p>
+                  {request.adminNotes && (
+                    <>
+                      <p className="text-sm text-gray-500 mt-2">Admin Notes</p>
+                      <p className="mt-1 p-3 bg-blue-50 rounded-md">
+                        {request.adminNotes}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+        </CardContent>
+      </Card>
+    </TabsContent>
   </Tabs>
 );
 
@@ -837,6 +950,7 @@ const JobCard = ({
       >
         <Trash2 className="h-4 w-4" />
       </Button>
+      <AssignTaskForm jobId={job.id} />
     </div>
   </div>
 );
@@ -878,7 +992,8 @@ const ApplicationCard = ({
         <Avatar>
           <AvatarImage
             src={
-              application.worker?.avatar || "/placeholder.svg?height=40&width=40"
+              application.worker?.avatar ||
+              "/placeholder.svg?height=40&width=40"
             }
           />
           <AvatarFallback>
@@ -1000,13 +1115,13 @@ const AssignmentCard = ({
         <p className="text-sm text-gray-600 mt-1">{assignment.notes}</p>
       )}
     </div>
-    <div className="flex space-x-2">
+    {/* <div className="flex space-x-2">
       <Button size="sm" variant="outline">
         <MessageSquare className="h-4 w-4 mr-1" />
         Message
       </Button>
       <Button size="sm">View Details</Button>
-    </div>
+    </div> */}
   </div>
 );
 
@@ -1109,7 +1224,7 @@ const CompanyProfileCard = ({
           </a>
         </div>
       )}
-      <Button className="w-full" variant="outline" size="sm">
+      <Button className="w-full" variant="outline" size="sm" onClick={() => router.push("/profile") }>
         Edit Profile
       </Button>
     </CardContent>

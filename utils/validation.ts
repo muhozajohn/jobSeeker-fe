@@ -29,24 +29,51 @@ export const userValidation = Yup.object().shape({
     .nullable(),
   role: Yup.string()
     .required("Role is required"),
-    // .oneOf(['ADMIN', 'RECRUITER', 'WORKER'], "Invalid role"),
+  // .oneOf(['ADMIN', 'RECRUITER', 'WORKER'], "Invalid role"),
   isActive: Yup.boolean()
 });
 
 // Recruiter validations
 export const recruiterValidation = Yup.object().shape({
-  companyName: Yup.string(),
+  // Personal Information
+  firstName: Yup.string()
+    .required("First name is required")
+    .max(NAME_MAX_LENGTH, `First name must be ${NAME_MAX_LENGTH} characters or less`),
+  lastName: Yup.string()
+    .required("Last name is required")
+    .max(NAME_MAX_LENGTH, `Last name must be ${NAME_MAX_LENGTH} characters or less`),
+  email: Yup.string()
+    .required("Email is required")
+    .email("Invalid email address"),
+  phone: Yup.string()
+    .matches(PHONE_REGEX, "Invalid phone number")
+    .nullable(),
+
+  // Security
+  password: Yup.string()
+    .required("Password is required")
+    .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`),
+  confirmPassword: Yup.string()
+    .required("Please confirm your password")
+    .oneOf([Yup.ref('password')], "Passwords must match"),
+
+  // Recruiter Information (some optional)
+  companyName: Yup.string(), // Optional
   type: Yup.string()
     .required("Recruiter type is required")
     .oneOf(['COMPANY', 'GROUP', 'INDIVIDUAL'], "Invalid recruiter type"),
   description: Yup.string()
     .max(DESCRIPTION_MAX_LENGTH, `Description must be ${DESCRIPTION_MAX_LENGTH} characters or less`)
     .nullable(),
-  location: Yup.string().nullable(),
+  location: Yup.string().nullable(), // Optional
   website: Yup.string()
     .matches(URL_REGEX, "Invalid URL format")
     .nullable(),
-  verified: Yup.boolean()
+
+  // Terms Agreement
+  agreeToTerms: Yup.boolean()
+    .required("You must agree to the terms")
+    .oneOf([true], "You must agree to the terms"),
 });
 
 // Worker validations
@@ -116,7 +143,7 @@ export const workAssignmentValidation = Yup.object().shape({
   endTime: Yup.date()
     .nullable()
     .when('startTime', (startTime, schema) => {
-      return startTime 
+      return startTime
         ? schema.min(startTime, "End time must be after start time")
         : schema;
     }),
